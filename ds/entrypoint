@@ -1,0 +1,272 @@
+#! /bin/sh
+# @(#) $Uno$
+
+#set -e
+
+LISTEN="ldap:///"
+DAEMON="/usr/sbin/slapd"
+RUNROOT="/run/slapd"
+DBROOT="/app/db"
+PIDFILE="${RUNROOT}/slapd.pid"
+ARGSFILE="${RUNROOT}/slapd.args"
+CFGPATH="${DBROOT}/config"
+DBPATH="${DBROOT}/mdb0"
+GROUP="openldap"
+USER="openldap"
+OWNER="${USER}:${GROUP}"
+DS_DEBUG=${DS_DEBUG:-0}
+DSPID=0
+self="ds[$(hostname)]"
+
+ds_is_running() {
+	DSPID=$(cat ${PIDFILE} 2>/dev/null)
+	if kill -0 "${DSPID}" 2>/dev/null ; then
+		return 0
+	fi
+	DSPID=0
+	return 1
+}
+
+ds_start()
+{
+	[ $DSPID -gt 0 ] && return 0
+	chown -R ${OWNER} "${CFGPATH}"
+	chown -R ${OWNER} "${DBROOT}"
+	$DAEMON -F "${CFGPATH}" -n "${self}" -u ${USER} -g ${GROUP} "$@"
+	if ! ds_is_running ; then
+		printf "%s: failed to start Directory Service\n" "${self}" >&2
+		return 150
+	fi
+	return 0
+}
+
+ds_start_local()
+{
+	ds_start -h "ldapi:///" "$@"
+}
+
+ds_start_full()
+{
+	ds_start -h "ldapi:/// $LISTEN" "$@"
+}
+
+ds_stop()
+{
+	while ds_is_running ; do
+		sync
+		kill ${DSPID}
+		for c in 1 2 3 4 ; do
+			if ds_is_running ; then
+				sleep 1
+			else
+				DSPID=0
+				return 0
+			fi
+		done
+		printf "%s: waiting for Directory Service shutdown...\n" "${self}" >&2
+	done
+}
+
+ds_import_file()
+{
+	ldapadd -Y EXTERNAL -H ldapi:/// -f "$1"
+}
+
+ds_import_template()
+{
+	printf "%s: Importing template %s...\n" "${self}" "$1" >&2
+	initfile="/tmp/init.$$.ldif"
+	sed \
+		-e "s!@DBPATH@!${DBPATH}!g" \
+		-e "s!@DS_REALM_DN@!${DS_REALM_DN}!g" \
+		-e "s!@DS_REALM_DNS@!${DS_REALM_DNS}!g" \
+		-e "s!@DS_REALM_KRB@!${DS_REALM_KRB}!g" \
+		-e "s!@DS_REALM_ORGNAME@!${DS_REALM_ORGNAME}!g" \
+		< "$1" > ${initfile} || return
+	ds_import_file ${initfile}
+	result=$?
+	if ! [ $result -eq 0 ] ; then
+		printf "%s: failed import was:" >&2
+		cat ${initfile} >&2
+		return $result
+	fi
+	return 0
+}
+
+ds_prepare()
+{
+	mkdir -p /run/slapd /app/config
+	
+	if ds_is_running ; then
+		printf "%s: Directory Service is already running (PID %d)\n" "${self}" "$DSPID" >&2
+		return 0
+	fi
+
+	success=no
+	ds_autoinit=yes
+	if ! [ -d "${CFGPATH}" ] || ! [ -f "${CFGPATH}/cn=config.ldif" ] ; then
+		printf "%s: Initialising configuration database\n" "${self}" >&2
+		mkdir -p "${CFGPATH}" || return
+		slapadd -F "${CFGPATH}" -b "CN=Config" -l /app/share/templates/init/config.ldif || return
+
+		for file in /app/share/schema/*.ldif ; do
+			printf "%s: Importing schema: %s\n" "${self}" "$file" >&2
+			slapadd -F "${CFGPATH}" -b "CN=Config" -l "$file" || return
+		done
+		touch "${CFGPATH}/.ds-stamp"
+	fi
+	if [ -x "${CFGPATH}/cn=config/olcDatabase={1}mdb.ldif" ] ; then
+		printf "%s: NOTICE: instance database configuration already present, will not re-initialise\n" "${self}" >&2
+		ds_autoinit=no
+	fi
+	if [ "$ds_autoinit" = yes ] ; then
+		if [ -z "$DS_REALM_ORGNAME" ] ; then
+			printf "%s: ERROR: \$DS_REALM_ORGNAME is not set, automatic initialisation disabled\n" "${self}" >&2
+			ds_autoinit=no
+		fi
+		if [ -z "$DS_REALM_DN" ] ; then
+			DS_REALM_DN="O=${DS_REALM_ORGNAME}"
+			printf "%s: WARNING: \$DS_REALM_DN was not set, defaulting to <%s>\n" "${self}" "${DS_REALM_DN}" >&2
+		fi
+		if [ -z "$DS_REALM_DNS" ] ; then
+			printf "%s: ERROR: \$DS_REALM_DNS is not set, automatic initialisation disabled\n" "${self}" >&2
+			ds_autoinit=no
+		fi
+		if [ -z "$DS_REALM_KRB" ] ; then
+			DS_REALM_KRB="$(echo $DS_REALM_DNS | tr a-z A-Z)"
+			printf "%s: NOTICE: \$DS_REALM_KRB is not set, defaulting to %s\n" "${self}" "${DS_REALM_KRB}" >&2
+		fi
+	fi
+
+	if [ "$ds_autoinit" = yes ] ; then
+		printf "%s: initialising database for realm <%s>\n" "${self}" "${DS_REALM_DN}" >&2
+		mkdir -p "${DBPATH}"
+		if ! ds_start_local ; then
+			rm -r "${DBPATH}"
+			return 150
+		fi
+		r=0
+		for template in /app/share/templates/*.ldif.in ; do
+			if ! ds_import_template "${template}" ; then
+				r=151
+				break
+			fi
+		done
+		ds_stop
+		if [ "$r" != 0 ] ; then
+			printf "%s: ERROR: initialisation failed; instance may be an inconsistent state\n" "${self}" >&2
+			return $r
+		fi
+		printf "%s: realm <%s> successfully initialised\n" "${self}" "${DS_REALM_DN}" >&2
+	fi
+
+	if ! [ -f "${DBPATH}/DB_CONFIG"] ; then
+		cat >"${DBPATH}/DB_CONFIG" <<EOF
+set lk_detect DB_LOCK_DEFAULT
+set_flags DB_TXN_NOSYNC
+set_lg_max 5242880
+set_cachesize 0 5242880 1
+txn_checkpoint 128 15 0
+EOF
+	fi
+
+	return 0
+#	if test -d "${DBPATH}" ; then
+#		if test -f "${DBPATH}/base" ; then
+#			base=$(cat "${DBPATH}/base")
+#			if ! test x"$base" = x"${REALM_DN}" ; then
+#				printf "%s: Realm database %s was previously configured with a base DN of %s (specified base DN is %s); base DNs must match. Aborting.\n" "$self" "${REALM}" "${base}" "${BASE_DN}" >&2
+#				return 100
+#			fi
+#		else
+#			printf "%s: Realm database %s: directory exists but does not contain a populated database; please move it out of the way before proceeding.\n" "$self" "${REALM}" >&2
+#			return 101
+#		fi
+#		return 0
+#	fi
+	
+	printf "%s: Creating new realm database %s with base DN: %s\n" "$self" "${REALM}" "${REALM_DN}" >&2
+	mkdir -p "${DBPATH}"
+	echo "${REALM_DN}" > "${DBPATH}/base"
+	
+	if ! ds_start_local ; then
+		status=$?
+		rm -r "${DBPATH}"
+		return $status
+	fi
+	for template in /app/share/*.ldif.in ; do
+		printf "%s: Importing %s...\n" "${self}" "${template}" >&2
+		initfile="/tmp/init.$$.ldif"
+		sed \
+			-e "s!@REALM@!${REALM}!g" \
+			-e "s!@REALM_DNS@!${REALM_DNS}!g" \
+			-e "s!@REALM_DN@!${REALM_DN}!g" \
+			-e "s!@REALM_ORGNAME@!${REALM_ORGNAME}!g" \
+			-e "s!@ROOT_DN@!${ROOT_DN}!g" \
+			-e "s!@ROOT_PW@!${ROOT_PW}!g" \
+			-e "s!@SCHEMA_OPTIONS@!${SCHEMA_OPTIONS}!g" \
+			-e "s!@FIRST_LDAP_NODE@!${FIRST_LDAP_NODE}!g" \
+			-e "s!@FIRST_LDAP_DNS@!${FIRST_LDAP_DNS}!g" \
+			-e "s!@FIRST_USER_UID@!${FIRST_USER_UID}!g" \
+			-e "s!@FIRST_USER_CN@!${FIRST_USER_CN}!g" \
+			< ${template} > ${initfile}
+		ds_import_file ${initfile}
+		rm ${initfile}
+		sync ; sleep 1
+	done
+	ds_stop
+	printf "%s: Realm database %s created\n" "${self}" "${REALM}" >&2
+	return 0
+}
+
+case "$1" in
+status)
+	if ds_is_running ; then
+		printf "%s: Directory Service is running (PID %d)\n" "${self}" "$DSPID" >&2
+		exit 0
+	else
+		printf "%s: Directory Service is not running\n" "${self}" >&2
+		exit 1
+	fi
+	;;
+prepare)
+	if ! ds_prepare ; then
+		exit 160
+	fi
+	;;
+start)
+	if ! ds_prepare ; then
+		printf "%s: preparation failed\n" "${self}" >&2
+		exit 160
+	fi
+	printf "%s: Starting Directory Service...\n" "${self}" >&2
+	if ! ds_start_full ; then
+		exit 150
+	fi
+	exit 0
+	;;
+stop)
+	ds_stop
+	;;
+""|run)
+	if ! ds_prepare ; then
+		printf "%s: preparation failed\n" "${self}" >&2
+		exit 160
+	fi
+	printf "%s: Starting Directory Service in foreground mode\n" "${self}" >&2
+	if ! ds_start_full -d ${DS_DEBUG} ; then
+		exit 150
+	fi
+	exit 0
+	;;
+shell)
+	exec /bin/bash --login
+	;;
+dump)
+	shift
+	exec slapcat -F "${CFGPATH}" "$@"
+	;;
+*)
+	echo "Usage: $0 status | start | stop | prepare | shell | run | dump" >&2
+	exit 255
+esac

@@ -1,0 +1,3 @@
+dn: CN=Contacts,@DS_REALM_DN@
+cn: Contacts
+objectClass: container

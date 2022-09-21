@@ -1,0 +1,49 @@
+## System schema entries included here for reference:
+
+#objectClass ( 2.5.6.0 NAME 'top'
+#	DESC 'RFC2256: top of the superclass chain'
+#	ABSTRACT
+#	MUST objectClass )
+
+#objectClass ( 2.5.6.1 NAME 'alias'
+#	DESC 'RFC2256: an alias'
+#	SUP top STRUCTURAL
+#	MUST aliasedObjectName )
+
+## Structural classes
+
+objectClass ( 0.0 NAME 'realm'
+	DESC 'A management scope'
+	STRUCTURAL
+	MAY ( description ) )
+
+objectClass ( 0.1 NAME 'container'
+	DESC 'A container of other objects'
+	STRUCTURAL
+	MUST cn
+	MAY ( description ) )
+
+## Auxiliary classes
+
+objectclass ( 2.5.6.4 NAME 'organization'
+	DESC 'RFC2256: an organization'
+	SUP top
+	AUXILIARY
+	MUST o
+	MAY ( userPassword $ searchGuide $ seeAlso $ businessCategory $
+		x121Address $ registeredAddress $ destinationIndicator $
+		preferredDeliveryMethod $ telexNumber $ teletexTerminalIdentifier $
+		telephoneNumber $ internationaliSDNNumber $ 
+		facsimileTelephoneNumber $ street $ postOfficeBox $ postalCode $
+		postalAddress $ physicalDeliveryOfficeName $ st $ l $ description ) )
+
+objectclass ( 2.5.6.5 NAME 'organizationalUnit'
+	DESC 'RFC2256: an organizational unit'
+	SUP top AUXILIARY
+	MUST ou
+	MAY ( userPassword $ searchGuide $ seeAlso $ businessCategory $
+		x121Address $ registeredAddress $ destinationIndicator $
+		preferredDeliveryMethod $ telexNumber $ teletexTerminalIdentifier $
+		telephoneNumber $ internationaliSDNNumber $
+		facsimileTelephoneNumber $ street $ postOfficeBox $ postalCode $
+		postalAddress $ physicalDeliveryOfficeName $ st $ l $ description ) )

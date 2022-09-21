@@ -1,0 +1,11 @@
+# @(#) $Uno$
+
+#dn: NODE=@FIRST_LDAP_NODE@,SVC=LDAP-TLS,CN=Directory Service,CN=Identity Management,ENV=Infrastructure,@DS_REALM_DN@
+#node: @FIRST_LDAP_NODE@
+#objectClass: serviceNode
+#dNSDomainName: @FIRST_LDAP_DNS@
+
+#dn: uid=slapd,NODE=@FIRST_LDAP_NODE@,SVC=LDAP-TLS,CN=Directory Service,CN=Identity Management,ENV=Infrastructure,@DS_REALM_DN@
+#uid: slapd
+#objectClass: serviceAccount
+#cn: OpenLDAP server

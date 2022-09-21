@@ -1,0 +1,8 @@
+[libdefaults]
+	default_realm = @DS_REALM_KRB@
+
+[realms]
+	@DS_REALM_KRB@ = {
+		kdc = kdc
+		admin_server = 127.0.0.1
+	}

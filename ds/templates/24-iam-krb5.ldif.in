@@ -1,0 +1,11 @@
+# @(#) $Uno$
+
+#dn: uid=krbtgt,SVC=Kerberos KDC,CN=Authentication Service,CN=Identity Management,ENV=Infrastructure,@DS_REALM_DN@
+#uid: krbtgt
+#objectClass: serviceAccount
+#cn: Kerberos Ticket-Granting Service
+
+#dn: uid=kadmin,SVC=Kerberos Administration,CN=Authentication Service,CN=Identity Management,ENV=Infrastructure,@DS_REALM_DN@
+#uid: kadmin
+#objectClass: serviceAccount
+#cn: Kerberos Administration

@@ -1,0 +1,11 @@
+dn: @DS_REALM_DN@
+O: @DS_REALM_ORGNAME@
+objectClass: organization
+objectClass: realm
+objectClass: krb5Realm
+dNSDomainName: @DS_REALM_DNS@
+krb5RealmName: @DS_REALM_KRB@
+
+
+
+

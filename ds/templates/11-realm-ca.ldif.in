@@ -1,0 +1,11 @@
+dn: CN=@DS_REALM_ORGNAME@ Root A1,@DS_REALM_DN@
+cn: @DS_REALM_ORGNAME@ Root A1
+objectClass: certificate
+
+dn: CN=@DS_REALM_ORGNAME@ Root B1,@DS_REALM_DN@
+cn: @DS_REALM_ORGNAME@ Root B1
+objectClass: certificate
+
+dn: CN=@DS_REALM_ORGNAME@ Intermediate X1,@DS_REALM_DN@
+cn: @DS_REALM_ORGNAME@ Intermediate X1
+objectClass: certificate

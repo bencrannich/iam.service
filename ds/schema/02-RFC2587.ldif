@@ -1,0 +1,30 @@
+# @(#) $Uno$
+
+dn: cn=RFC2587,cn=Schema,cn=Config
+objectClass: olcSchemaConfig
+cn: RFC2587
+#description: RFC 2587 schema definitions
+#
+#### Attribute types
+#
+#### Abstract object classes
+#
+#### Structural object classes
+#
+#### Auxiliary object classes
+#
+olcObjectClasses: ( 2.5.6.21 NAME 'pkiUser'
+  DESC 'RFC2587: a PKI user'
+  SUP top AUXILIARY
+  MAY userCertificate )
+#
+olcObjectClasses: ( 2.5.6.22 NAME 'pkiCA'
+  DESC 'RFC2587: PKI certificate authority'
+  SUP top AUXILIARY
+  MAY ( authorityRevocationList $ certificateRevocationList $
+  cACertificate $ crossCertificatePair ) )
+#
+olcObjectClasses: ( 2.5.6.23 NAME 'deltaCRL'
+  DESC 'RFC2587: PKI user'
+  SUP top AUXILIARY
+  MAY deltaRevocationList )

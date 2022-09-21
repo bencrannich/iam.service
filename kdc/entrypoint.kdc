@@ -1,0 +1,31 @@
+#! /bin/sh
+
+IAM_SERVICE=kdc
+
+. /app/lib/common.sh
+
+case "$1" in
+shell)
+	exec /bin/bash --login
+	;;
+run)
+	kdc_prepare || exit
+	printf "%s: starting %s\n" "${self}" "$KDC_DAEMON" >&2
+	exec $KDC_DAEMON $KDC_ARGS || exit
+	;;
+selftest)
+	printf "%s: Performing self-tests\n" "$self" >&2
+
+	# /etc/init.d/heimdal-kdc start || exit
+	sleep 1
+	;;
+kadmin)
+	printf "%s: entering interactive local kadmin session\n" "$self" >&2
+	kadmin -l
+	;;
+*)
+	printf "%s: unrecognised sub-command '%s'\n" "${self}" "$1" >&2
+	echo "Usage: $0 shell | run | kadmin" >&2
+	return 255
+esac
+

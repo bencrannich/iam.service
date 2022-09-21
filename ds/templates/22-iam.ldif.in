@@ -1,0 +1,47 @@
+# @(#) $Uno$
+
+dn: CN=Identity Management,ENV=Infrastructure,@DS_REALM_DN@
+cn: Identity Management
+objectClass: serviceGroup
+description: Identity and access management services
+
+dn: CN=Directory Service,CN=Identity Management,ENV=Infrastructure,@DS_REALM_DN@
+cn: Directory Service
+objectClass: service
+description: LDAP directory service
+
+dn: SVC=LDAP-TLS,CN=Directory Service,CN=Identity Management,ENV=Infrastructure,@DS_REALM_DN@
+svc: LDAP-TLS
+objectClass: serviceInstance
+advertisedServiceName: ldaps
+advertisedServicePort: 636
+advertisedServiceProtocol: tcp
+
+dn: CN=Authentication Service,CN=Identity Management,ENV=Infrastructure,@DS_REALM_DN@
+cn: Authentication Service
+objectClass: service
+description: Kerberos directory service
+
+dn: SVC=Kerberos KDC,CN=Authentication Service,CN=Identity Management,ENV=Infrastructure,@DS_REALM_DN@
+svc: Kerberos KDC
+objectClass: serviceInstance
+advertisedServiceName: kerberos
+advertisedServicePort: 88
+advertisedServiceProtocol: tcp
+advertisedServiceProtocol: udp
+
+dn: SVC=Kerberos Administration,CN=Authentication Service,CN=Identity Management,ENV=Infrastructure,@DS_REALM_DN@
+svc: Kerberos Administration
+objectClass: serviceInstance
+advertisedServiceName: kadmin
+advertisedServicePort: 749
+advertisedServiceProtocol: tcp
+advertisedServiceProtocol: udp
+
+dn: SVC=Kerberos Password Service,CN=Authentication Service,CN=Identity Management,ENV=Infrastructure,@DS_REALM_DN@
+svc: Kerberos Password Service
+objectClass: serviceInstance
+advertisedServiceName: kpasswd
+advertisedServicePort: 464
+advertisedServiceProtocol: tcp
+advertisedServiceProtocol: udp

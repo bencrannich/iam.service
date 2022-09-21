@@ -1,0 +1,20 @@
+#! /bin/sh
+
+IAM_SERVICE=kadmin
+
+. /app/lib/common.sh
+
+case "$1" in
+shell)
+	exec /bin/bash --login
+	;;
+run)
+	kadmin_prepare || exit
+	printf "%s: starting %s\n" "${self}" "$KADMIND_DAEMON" >&2
+	exec $KADMIND_DAEMON $KADMIND_ARGS || exit
+	;;
+*)
+	printf "%s: unrecognised sub-command '%s'\n" "${self}" "$1" >&2
+	echo "Usage: $0 shell | run | kadmin" >&2
+	return 255
+esac

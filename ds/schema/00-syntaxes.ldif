@@ -1,0 +1,6 @@
+dn: CN=Syntaxes,CN=Schema,CN=Config
+objectClass: olcSchemaConfig
+CN: Syntaxes
+#olcLdapSyntaxes: ( 2.5.5.1 DESC 'Distinguished Name' X-SUBST 1.3.6.1.4.1.1466.115.121.1.12 )
+#olcLdapSyntaxes: ( 2.5.5.2 DESC 'OID' X-SUBST 1.3.6.1.4.1.1466.115.121.1.38 )
+#olcLdapSyntaxes: ( 2.5.5.3 DESC 'Case-sensitive string' X-SUBST 1.3.6.1.4.1.1466.115.121.1.5 )

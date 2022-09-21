@@ -1,0 +1,9 @@
+# @(#) $Tau: kdc/docker/kdc/services $
+
+kerberos           88/udp
+kerberos           88/tcp
+kpasswd            464/udp
+kerberos-adm       749/udp
+kerberos-adm       749/tcp
+krb_prop           754/tcp     krb5_prop hprop
+iprop              2121/tcp

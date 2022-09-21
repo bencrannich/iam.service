@@ -1,0 +1,166 @@
+dn: cn=Uno,cn=Schema,cn=Config
+objectClass: olcSchemaConfig
+cn: Uno
+olcObjectIdentifier: UnoAttributes 1.3.6.1.4.1.58118.102
+olcObjectIdentifier: UnoClasses 1.3.6.1.4.1.58118.101
+#
+#### Attributes
+#
+## dNSDomainName
+#
+olcAttributeTypes: ( UnoAttributes:1
+  NAME 'dNSDomainName'
+  DESC 'DNS domain name associated with this entity'
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )
+## environmentName
+#
+olcAttributeTypes: ( UnoAttributes:2
+  NAME ( 'env' 'environmentName' )
+  DESC 'The name of the environment hosting this entity'
+  SUP name
+  SINGLE-VALUE )
+## serviceInstance
+#
+olcAttributeTypes: ( UnoAttributes:3
+  NAME ( 'svc' 'serviceInstance' )
+  DESC 'The name of this service instance'
+  SUP name
+  SINGLE-VALUE )
+## nodeName
+#
+olcAttributeTypes: ( UnoAttributes:4
+  NAME ( 'node' 'nodeName' )
+  DESC 'The name of this service node'
+  SUP name )
+## certificateSerialNumber
+#
+olcAttributeTypes: ( UnoAttributes:5
+  NAME ( 'csn' 'certificateSertialNumber' )
+  DESC 'The serial number of this certificate'
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 )
+## advertisedServiceName
+#
+olcAttributeTypes: ( UnoAttributes:6
+  NAME 'advertisedServiceName'
+  DESC 'The name of this service as it appears in DNS'
+  SUP name )
+## advertisedServicePort
+#
+olcAttributeTypes: ( UnoAttributes:7
+  NAME 'advertisedServicePort'
+  DESC 'The port number of this service as it appears in DNS'
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 )
+## advertisedServiceProtocol
+#
+olcAttributeTypes: ( UnoAttributes:8
+  NAME 'advertisedServiceProtocol'
+  DESC 'The protocol (e.g., "tcp", "udp", "sctp") of this service as it appears in DNS'
+  SUP name )
+#
+## issuer
+olcAttributeTypes: ( UnoAttributes:9
+  NAME 'issuer'
+  DESC 'The issuer of certificates for this entity'
+  SUP distinguishedName )
+#### Abstract object classes
+#
+#### Structural object classes
+#
+## container
+#
+olcObjectClasses: ( UnoClasses:1.1
+  NAME 'container'
+  DESC 'A a container of other objects'
+  SUP top
+  STRUCTURAL
+  MUST cn
+  MAY description
+  )
+## certificate
+#
+olcObjectClasses: ( UnoClasses:1.2
+  NAME 'certificate'
+  SUP top
+  MUST cn
+  MAY ( description $ issuer ) )
+## service
+#
+olcObjectClasses: ( UnoClasses:1.3
+  NAME 'service'
+  SUP container
+  MUST cn
+  MAY description )
+## serviceGroup
+#
+olcObjectClasses: ( UnoClasses:1.4
+  NAME 'serviceGroup'
+  SUP container
+  STRUCTURAL
+  MUST cn
+  MAY description )
+## serviceInstance
+#
+olcObjectClasses: ( UnoClasses:1.5
+  NAME 'serviceInstance'
+  SUP top
+  STRUCTURAL
+  MUST svc
+  MAY ( cn $ description $ advertisedServiceName $ advertisedServicePort $ advertisedServiceProtocol ) )
+## serviceNode
+#
+olcObjectClasses: ( UnoClasses:1.6
+  NAME 'serviceNode'
+  SUP top
+  STRUCTURAL
+  MUST node
+  MAY ( cn $ description $ dNSDomainName $ advertisedServiceName $ advertisedServicePort $ advertisedServiceProtocol ) )
+## environment
+#
+olcObjectClasses: ( UnoClasses:1.10
+  NAME 'environment'
+  SUP top
+  STRUCTURAL
+  MUST environmentName
+  MAY ( cn $ description ) )
+#
+## account
+#
+olcObjectClasses: ( UnoClasses:1.11
+  NAME 'account'
+  SUP top
+  STRUCTURAL
+  MUST uid
+  MAY ( cn $ description $ krb5PrincipalName ) )
+## role
+#
+olcObjectClasses: ( UnoClasses:1.7
+  NAME 'role'
+  SUP account )
+## serviceAccount
+#
+olcObjectClasses: ( UnoClasses:1.12
+  NAME 'serviceAccount'
+  SUP account )
+## userAccount
+#
+olcObjectClasses: ( UnoClasses:1.13
+  NAME 'userAccount'
+  SUP account )
+#### Auxilliary object classes
+#
+## realm
+#
+olcObjectClasses: ( UnoClasses:2.1
+  NAME 'realm'
+  DESC 'A management realm (typically an organization, or a business unit)'
+  SUP top
+  AUXILIARY
+  MAY ( description $ dNSDomainName $ krb5RealmName )
+  )
+olcObjectClasses: ( UnoClasses:2.2
+  NAME 'certificateEntity'
+  DESC 'An entity for which certificates are issued'
+  SUP top
+  AUXILIARY
+  MAY ( userCertificate $ cACertificate $ issuer )
+  )

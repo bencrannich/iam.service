@@ -1,0 +1,22 @@
+version: "3.3"
+  services:
+    ds:
+      ports:
+        - "192.168.100.8:389:389/tcp"
+        - "192.168.100.8:636:636/tcp"
+      env_file:
+        ./pi-866a45.env
+      volumes:
+        - "/fs/d1/services/iam:/app/db"
+    kdc:
+      ports:
+        - "192.168.100.5:88:88/tcp"
+        - "192.168.100.5:88:88/udp"
+        - "192.168.100.5:754:754/udp"
+        - "192.168.100.6:749:749/udp"
+        - "192.168.100.6:749:749/tcp"
+        - "192.168.100.7:464:464/udp"
+      env_file:
+        ./pi-866a45.env
+      volumes:
+        - "/fs/d1/services/iam:/app/db"

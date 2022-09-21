@@ -1,0 +1,4 @@
+dn: CN=@DS_REALM_ORGNAME@ Roles CA,CN=Roles,@DS_REALM_DN@
+cn: @DS_REALM_ORGNAME@ Roles CA
+objectClass: certificate
+issuer: CN=@DS_REALM_ORGNAME@ Intermediate X1,@DS_REALM_DN@

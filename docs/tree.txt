@@ -1,0 +1,71 @@
+O=Wayne Enterprises					             organization (+ Realm)
+  dNSDomainName:    wayne.biz
+	CN=Root CA A1                                Certificate
+		CSN=xx:yy:zz:aa:bb:cc                    CertificateInstance
+		  certificateSerialNumber: xx:yy:zz:aa:bb:cc
+		  certificateAlgorithm: <OID>
+		  issuer: <DN>
+		  validityNotBefore: <dateTime>
+		  validityNotAfter: <dateTime>
+		  subjectPublicKeyInfo: <binary> ?
+		  issuerUniqueID: ...
+		  subjectUniqueID: ...
+		  extensions: ...?
+	CN=Root CA A2                                Certificate
+	CN=Intermediate CA X1                        Certfificate
+	ENV=Infrastructure Services		             Environment
+		CN=Infrastructure Services CA 1          Certificate
+		CN=Identity Management		             Service Group
+			CN=Directory Service                 Service
+				SVC=LDAP-TLS                     Service Instance
+				serviceName:     ldap
+				serviceProtocol: tcp
+				servicePort:     636
+					CN=ldap.wayne.biz            Service Node
+		CN=Kerberos KDC                          Service
+		CN=Certificate Authority                 Service
+	CN=Roles                                     Container
+		CN=User manager                          Role
+		CN=Backup operator                       Role
+	CN=Accounts                                  Container
+		[CN=Otto Normalbenutzer]                 Account
+		    CN=YubiKey 5C 18293335               Token
+			  CN=otto@WAYNE.BIZ Identity         Certificate
+			  CN=otto/useradm@WAYNE.BIZ Identity Certificate
+			CN=Contacts                          Container
+	CN=Applications					Container
+		Maps						Application
+	Contacts						Container
+		Travel Bookings				inetOrgPerson
+	Groups
+		HR Service Desk				distributionList
+	Sites
+		EU							Container
+			EU-West					Site
+				Frankfurt			Site
+					Frankfurt Team	Group
+				EU-West-1			Site
+					EU-West-1a		Zone
+					EU-West-1b		Zone
+				EU-West-2			Site
+					EU-West-1a		Zone
+			EU-East					Site
+		US-Virginia					Site
+		Gotham-Lab					Site
+			Lab Techs				Group
+			Brucedev				Node
+	CN=Environments					Container
+		ENV=Infrastructure			Environment
+		ENV=Development				Environment
+
+----
+Root CA             CN=Root CA A1/${REALM_DN}
+Root CA             CN=Root CA B1/${REALM_DN}
+Intermediate CA     CN=Intermediate CA X1/${REALM_DN}
+Intermediate CA     CN=Infrastructure Services CA 1/ENV=Infrastructure Services/${REALM_DN}
+Service certificate CN=${LDAP_HOSTNAME}/Node=default/SVC=LDAP-TLS/ENV=Infrastructure Services/${REALM_DN}
+Service certificate CN=${KDC_HOSTNAME}/Node=default/SVC=KDC/ENV=Infrastructure Services/${REALM_DN}
+
+Directory Service
+CN=ldap.${DOMAIN},CN=${SITE},CN=Directory Service,CN=Services,O=${REALM_O}
+Kerberos KDC

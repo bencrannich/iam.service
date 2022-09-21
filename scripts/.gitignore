@@ -1,0 +1,6 @@
+/*
+!.gitignore
+!/ci
+!/docker
+!/Makefile.am
+

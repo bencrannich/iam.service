@@ -1,0 +1,15 @@
+# @(#) $Uno$
+
+dn: cn=RFC2377,cn=Schema,cn=Config
+objectClass: olcSchemaConfig
+cn: RFC2377
+#description: RFC 2377 schema definitions
+#
+#### Attribute types
+#
+#### Abstract object classes
+#
+#### Structural object classes
+#
+#### Auxiliary object classes
+#

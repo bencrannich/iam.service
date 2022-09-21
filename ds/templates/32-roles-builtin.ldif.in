@@ -1,0 +1,23 @@
+# @(#) $Uno$
+
+dn: UID=@DS_REALM_KRB@,CN=Roles,@DS_REALM_DN@
+uid: @DS_REALM_KRB@
+objectClass: role
+cn: Kerberos ticket-granting ticket role for @DS_REALM_KRB@
+#member: uid=krbtgt,SVC=Kerberos KDC,CN=Authentication Service,CN=Identity Management,ENV=Infrastructure,@DS_REALM_DN@
+
+dn: UID=admin,CN=Roles,@DS_REALM_DN@
+uid: admin
+objectClass: role
+cn: Kerberos Administrator
+
+dn: UID=changepw,CN=Roles,@DS_REALM_DN@
+uid: changepw
+objectClass: role
+cn: Kerberos Password Change
+
+dn: UID=diradm,CN=Roles,@DS_REALM_DN@
+uid: diradm
+objectClass: role
+cn: Directory Administrator
+

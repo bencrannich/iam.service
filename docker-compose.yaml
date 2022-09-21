@@ -1,0 +1,38 @@
+version: "3.3"
+services:
+  ds:
+    build:
+      target: ds
+    ports:
+      - "127.0.0.1:389:389/tcp"
+      - "127.0.0.1:636:636/tcp"
+    volumes:
+      - "./db:/app/db"
+      - slaprun:/var/run/slapd
+  kdc:
+    build:
+      target: kdc
+    depends_on:
+      - ds
+    ports:
+      - "127.0.0.1:988:88/tcp"
+      - "127.0.0.1:988:88/udp"
+      - "127.0.0.1:464:464/udp"
+      - "127.0.0.1:754:754/udp"
+    volumes:
+      - slaprun:/var/run/slapd
+      - "./db:/app/db"
+  kadmin:
+    build:
+      target: kadmin
+    depends_on:
+      - ds
+      - kdc
+    ports:
+      - "127.0.0.1:749:749/udp"
+    volumes:
+      - slaprun:/var/run/slapd
+      - "./db:/app/db"
+volumes:
+  slaprun:
+

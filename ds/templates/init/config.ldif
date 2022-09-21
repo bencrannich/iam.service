@@ -1,0 +1,95 @@
+# @(#) $Uno$
+
+## ------------------------------------------------------------------------- ##
+## Global configuration
+## ------------------------------------------------------------------------- ##
+
+dn: CN=Config
+objectClass: olcGlobal
+CN: Config
+olcPidFile: /run/slapd/slapd.pid
+olcArgsFile: /run/slapd/slapd.args
+olcLogLevel: none
+olcToolThreads: 1
+
+## ------------------------------------------------------------------------- ##
+## "Frontend" (global) database configuration - applies to all databases
+## ------------------------------------------------------------------------- ##
+
+dn: olcDatabase={-1}frontend,CN=Config
+objectClass: olcDatabaseConfig
+objectClass: olcFrontendConfig
+olcDatabase: {-1}frontend
+#
+## Global settings:
+#
+# Subschema subentry DN (see also the global ACL, below)
+#
+olcSchemadn: CN=Schema
+#
+## Global limits:
+#
+# Operate in read-only mode (requires a restart if modified)
+#
+olcReadOnly: FALSE
+#
+# Maximum number of entries to return from a search 
+#
+olcSizeLimit: 500
+#
+## Global requirements:
+#
+#olcRequire: ...
+#
+## Global restrictions:
+#
+#olcRestrict: ...
+#
+## Global security factors:
+#
+#olcSecurity: ...
+#
+## Global ACLs:
+#
+# - Permit management access to everything by (uid=0,gid=0)
+#   Not usable unless slapd is started with the -h ldapi:/// option to
+#   listen on a local Unix socket
+#
+olcAccess: {0}to *
+  by DN.exact=gidNumber=0+uidNumber=0,CN=peercred,CN=external,CN=auth manage by * break
+#  
+# - Allow read access to the root DSE
+#
+olcAccess: {1}to DN.exact="" by * read
+#
+# - Allow read access to the Subschema subentry (RFC4512)
+#
+olcAccess: {2}to DN.base="CN=Schema" by * read
+
+## ------------------------------------------------------------------------- ##
+## Configuration database configuration
+## ------------------------------------------------------------------------- ##
+
+dn: olcDatabase={0}Config,CN=Config
+objectClass: olcDatabaseConfig
+olcDatabase: {0}Config
+olcAccess: to *
+  by dn.exact=gidNumber=0+uidNumber=0,cn=peercred,cn=external,cn=auth manage by * break
+
+## ------------------------------------------------------------------------- ##
+## Schema configuration
+## ------------------------------------------------------------------------- ##
+
+dn: CN=Schema,CN=Config
+objectClass: olcSchemaConfig
+CN: Schema
+
+## ------------------------------------------------------------------------- ##
+## Module configuration
+## ------------------------------------------------------------------------- ##
+
+dn: CN=Module{0},CN=Config
+objectClass: olcModuleList
+CN: Module{0}
+olcModulePath: /usr/lib/ldap
+olcModuleLoad: back_mdb

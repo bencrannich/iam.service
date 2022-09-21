@@ -1,0 +1,6 @@
+# @(#) $Uno$
+
+dn: CN=@DS_REALM_ORGNAME@ Infrastructure Services CA,ENV=Infrastructure,@DS_REALM_DN@
+cn: @DS_REALM_ORGNAME@ Infrastructure Services CA
+objectClass: certificate
+issuer: CN=@DS_REALM_ORGNAME@ Intermediate X1,@DS_REALM_DN@

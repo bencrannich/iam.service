@@ -1,0 +1,4 @@
+dn: ENV=Infrastructure,@DS_REALM_DN@
+environmentName: Infrastructure
+objectClass: environment
+description: Services that support the basic operation of the @DS_REALM_KRB@ realm

@@ -1,0 +1,11 @@
+#! /bin/sh
+
+IAM_SERVICE=dev
+
+. /app/lib/common.sh
+
+krb5conf_update
+
+while true ; do
+	sleep 1
+done

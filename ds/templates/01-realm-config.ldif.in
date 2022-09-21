@@ -1,0 +1,20 @@
+## ------------------------------------------------------------------------- ##
+## Realm database configuration
+## ------------------------------------------------------------------------- ##
+
+dn: olcBackend=mdb,cn=config
+objectClass: olcBackendConfig
+olcBackend: mdb
+
+dn: olcDatabase={1}mdb,cn=config
+objectClass: olcDatabaseConfig
+objectClass: olcMdbConfig
+olcDatabase: {1}mdb
+olcDbCheckpoint: 512 30
+olcLastMod: TRUE
+olcSuffix: @DS_REALM_DN@
+olcDbDirectory: @DBPATH@
+#
+#
+#olcRootDN: @ROOT_DN@,@REALM_DN@
+#olcRootPW: @ROOT_PW@

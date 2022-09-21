@@ -1,0 +1,22 @@
+version: "3.3"
+services:
+  ds:
+    env_file:
+      ./dev.env
+    volumes:
+      - "./devdb:/app/db"
+  kdc:
+    env_file:
+      ./dev.env
+    volumes:
+      - "./devdb:/app/db"
+  kadmin:
+    env_file:
+      ./dev.env
+    volumes:
+      - "./devdb:/app/db"
+  dev:
+    build:
+      target: dev
+    env_file:
+      ./dev.env
