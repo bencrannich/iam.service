@@ -42,6 +42,8 @@ FROM core AS kerberos
 
 RUN apt-get install -qq heimdal-servers heimdal-clients heimdal-kdc openssl pwgen ldap-utils
 
+COPY --from=step /usr/local/bin/step /usr/local/bin/
+
 RUN mkdir -p /app /app/config /app/lib /app/db /app/etc
 VOLUME [ "/app/db" ]
 
