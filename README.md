@@ -91,10 +91,10 @@ $
 1. ds: Run container as unprivileged user
 2. ds: Run container with read-only root
 3. ~~When running with compose, mount volume for socket~~
-4. ds: schema updates???
+4. ds: schema updates + local schema overrides???
 5. ~~kdc: wait for ds availability~~
 6. kdc: fail better on initialisation
-7. ds: indices, DB_CONFIG
+7. ds: indices, database config (cross-check against DB_CONFIG)
 8. admin tools
 9. healthchecks
 10. unify scripts
@@ -104,4 +104,5 @@ $
 14. does Heimdal HDB support LDAP connections over TCP/mTLS?
 15. online CA configurations (intermediate, infra services, users… + throwaway root in dev)
 16. kadmin: why is `hdb-ldap-create-base` ignored
-
+17. ALL: database directories only need to be shared by certain containers
+18. ALL: tidy up environment variables
