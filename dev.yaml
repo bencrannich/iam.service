@@ -20,3 +20,6 @@ services:
       target: dev
     env_file:
       ./dev.env
+    volumes:
+      - "./devdb:/app/db"
+      - slaprun:/var/run/slapd
