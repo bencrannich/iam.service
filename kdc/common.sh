@@ -4,10 +4,15 @@
 
 IAM_SERVICE=${IAM_SERVICE:-IAM}
 IAM_KDC_HOSTNAME="${IAM_KDC_HOSTNAME:-$(hostname)}"
+IAM_KDC_USE_MKEY=${IAM_KDC_USE_MKEY:-yes}
+IAM_USER_NAME=${IAM_USER_NAME:-admin}
+IAM_USER_FULLNAME=${IAM_USER_FULLNAME:-"Realm Administrator"}
+
 DBROOT="/app/db"
 LDAPI="/run/slapd/ldapi"
 DBPATH="${DBROOT}/kdc"
 self="$IAM_SERVICE[${IAM_KDC_HOSTNAME}]"
+IAM_KDC_MKEY_OPT=""
 
 KDC_DAEMON=/usr/lib/heimdal-servers/kdc
 KDC_ARGS="--config-file=${DBPATH}/kdc.conf --addresses=0.0.0.0"
@@ -82,47 +87,51 @@ kadmin_prepare()
 kdc_bootstrap()
 {
 	printf "%s: initialising realm %s\n" "$self" "${DS_REALM_KRB}" >&2
-	if ! [ -r ${DBPATH}/m-key ] ; then
-		printf "%s: generating %s master key\n" "$self" "${DS_REALM_KRB}" >&2
-		kstash --random-key  --key-file=${DBPATH}/m-key || return
+	if [ "${IAM_KDC_USE_MKEY}" = "yes" ] ; then
+		IAM_KDC_MKEY_OPT="mkey_file = ${DBPATH}/heimdal.mkey"
+
+		if ! [ -r ${DBPATH}/heimdal.mkey ] ; then
+			printf "%s: generating %s master key\n" "$self" "${DS_REALM_KRB}" >&2
+			kstash --random-key  --key-file=${DBPATH}/heimdal.mkey || return
+		fi
 	fi
 	printf "%s: initialising realm database for %s\n" "$self" "${DS_REALM_KRB}" >&2
-	kadmin -l init --realm-max-ticket-life=unlimited --realm-max-renewable-life=unlimited "${DS_REALM_KRB}" || return
-
-	echo 'admin/admin all' > ${DBPATH}/kadmind.acl
+#	kadmin -l init --bare --realm-max-ticket-life=unlimited --realm-max-renewable-life=unlimited "${DS_REALM_KRB}" || return
+	kadmin -l cpw -r "krbtgt/${DS_REALM_KRB}"
+	echo "${IAM_USER_NAME}/admin all" > ${DBPATH}/kadmind.acl
 	printf "%s: storing kadmin principal's key (kadmin/admin@%s)\n" "$self" "${DS_REALM_KRB}" >&2
-	kadmin -l ext -k "${DBPATH}/kadmin.kt" "kadmin/admin@${DS_REALM_KRB}" || return
+	kadmin -l cpw -r "kadmin/admin@${DS_REALM_KRB}"
 
-	printf "%s: adding admin@%s and admin/admin@%s\n" "$self" "${DS_REALM_KRB}" "${DS_REALM_KRB}" >&2
-	newpw=$(pwgen -C 4 4 | sed -e 's! !-!g' -e 's!-$!!')
-	rm -f ${DBPATH}/admin-pw
-	touch ${DBPATH}/admin-pw
-	chmod 600 ${DBPATH}/admin-pw
-	if [ -z "$IAM_KDC_ADMINPW" ] ; then
-		echo "${newpw}" > ${DBPATH}/admin-pw
-		printf "%s: NOTICE: initial account password written to %s\n" "${self}" "${DBPATH}/admin-pw" >&2
+	printf "%s: adding %s@%s and %s/admin@%s\n" "$self" "${IAM_USER_NAME}" "${DS_REALM_KRB}" "${IAM_USER_NAME}" "${DS_REALM_KRB}" >&2
+	rm -f ${DBPATH}/admin-pw ${DBPATH}/user-pw
+
+	if [ -z "$IAM_KDC_USERPW" ] ; then
+		newpw=$(pwgen -C 4 4 | sed -e 's! !-!g' -e 's!-$!!')
+		touch ${DBPATH}/user-pw
+		chmod 600 ${DBPATH}/user-pw
+		echo "${newpw}" > ${DBPATH}/user-pw
+		printf "%s: NOTICE: %s's account password written to %s\n" "${self}" "${IAM_USER_NAME}" "${DBPATH}/user-pw" >&2
 	else
-		printf "%s: NOTICE: overriding admin/admin's password via IAM_KDC_ADMINPW\n" "${self}" >&2
+		printf "%s: NOTICE: overriding %s's password via IAM_KDC_USERPW\n" "${self}" "${IAM_USER_NAME}" >&2
+		printf "%s: NOTICE: account password will NOT be written to %s\n" "${self}" "${DBPATH}/user-pw" >&2
+		newpw="${IAM_KDC_USERPW}"
+	fi
+	kadmin -l cpw -p "${newpw}" "${IAM_USER_NAME}@${DS_REALM_KRB}"
+	unset newpw
+	
+	if [ -z "$IAM_KDC_ADMINPW" ] ; then
+		newpw=$(pwgen -C 4 4 | sed -e 's! !-!g' -e 's!-$!!')
+		touch ${DBPATH}/admin-pw
+		chmod 600 ${DBPATH}/admin-pw
+		echo "${newpw}" > ${DBPATH}/admin-pw
+		printf "%s: NOTICE: %s/admin's account password written to %s\n" "${self}" "${IAM_USER_NAME}" "${DBPATH}/admin-pw" >&2
+	else
+		printf "%s: NOTICE: overriding %s/admin's password via IAM_KDC_ADMINPW\n" "${self}" "${IAM_USER_NAME}" >&2
 		printf "%s: NOTICE: account password will NOT be written to %s\n" "${self}" "${DBPATH}/admin-pw" >&2
 		newpw="${IAM_KDC_ADMINPW}"
 	fi
-#	kadmin -l add -p "${newpw}" --use-defaults "admin/admin@${DS_REALM_KRB}" || return
-	kadmin -l modify -a "-disallow-svr,-disallow-renewable,-disallow-forwardable,-disallow-postdated" "admin@${DS_REALM_KRB}"
-	kadmin -l cpw -p "${newpw}" "admin@${DS_REALM_KRB}" || return
-	kadmin -l modify -a "-disallow-svr,disallow-renewable,disallow-forwardable,-disallow-postdated" "admin/admin@${DS_REALM_KRB}"
-	kadmin -l cpw -p "${newpw}" "admin/admin@${DS_REALM_KRB}" || return
+	kadmin -l cpw -p "${newpw}" "${IAM_USER_NAME}/admin@${DS_REALM_KRB}"
 	unset newpw
-
-		# we should really just check the principal list via kadmin
-#	if ! grep "^$IAM_KDC_HOSTNAME\$" "${DBPATH}/iprop-hosts" >/dev/null 2>&1 ; then
-#		printf "%s: adding replication principal iprop/%s@%s\n" "$self" "$IAM_KDC_HOSTNAME" "${DS_REALM_KRB}" >&2
-#		kadmin -l add --random-key --use-defaults "iprop/${IAM_KDC_HOSTNAME}@${DS_REALM_KRB}"
-#		echo "$IAM_KDC_HOSTNAME" >> "${DBPATH}/iprop-hosts"
-#		touch ${DBPATH}/slaves
-#	fi
-
-#	printf "%s: storing replication principal's key (iprop/%s@%s)\n" "$self" "$IAM_KDC_HOSTNAME" "${DS_REALM_KRB}" >&2
-#	kadmin -l ext "iprop/${IAM_KDC_HOSTNAME}@${DS_REALM_KRB}" || true
 
 	echo "${DS_REALM_KRB}" >${DBPATH}/realm
 
@@ -155,6 +164,7 @@ kdc_prepare()
 		sed \
 			-e "s!@DS_REALM_KRB@!${DS_REALM_KRB}!g" \
 			-e "s!@DS_REALM_DN@!${DS_REALM_DN}!g" \
+			-e "s!@IAM_KDC_MKEY_OPT@!${IAM_KDC_MKEY_OPT}!g" \
 			< /app/etc/kdc.conf.in > ${DBPATH}/kdc.conf
 	fi
 	rm -f /etc/heimdal-kdc/kdc.conf
@@ -164,4 +174,7 @@ kdc_prepare()
 	if [ "$bootstrap" = yes ] ; then
 		kdc_bootstrap || return
 	fi
+	printf "%s: generating kadmin.kt keytab for kadmin/admin@%s\n" "${self}" "${DS_REALM_KRB}" >&2
+	kadmin -l ext -k "${DBPATH}/kadmin.kt" "kadmin/admin@${DS_REALM_KRB}" || return
+
 }

@@ -2,25 +2,35 @@ dn: CN=Accounts,@DS_REALM_DN@
 cn: Accounts
 objectClass: container
 
-dn: CN=admin,CN=Accounts,@DS_REALM_DN@
-cn: admin
+dn: CN=@IAM_USER_FULLNAME@,CN=Accounts,@DS_REALM_DN@
+cn: @IAM_USER_FULLNAME@
 objectClass: account
 objectClass: userAccount
-objectClass: posixAccount
-uid: admin
-uidNumber: 500
-gidNumber: 500
-homeDirectory: /tmp
+objectClass: krb5Principal
+objectClass: krb5KDCEntry
+uid: @IAM_USER_NAME@
+description: Built-in realm administrator account
+krb5PrincipalName: @IAM_USER_NAME@@@DS_REALM_KRB@
+krb5KDCFlags: 126
+krb5KeyVersionNumber: 0
+krb5ExtendedAttributes:: MBqgAwEBAKETpxEYDzIwMjIwOTIyMjAyNzM1Wg==
+krb5ExtendedAttributes:: MAugAwEBAKEEqQIwAA==
+uidNumber: @IAM_USER_UID@
+gidNumber: @IAM_USER_GID@
+homeDirectory: @IAM_USER_HOME@
+loginShell: @IAM_USER_SHELL@
+gecos: @IAM_USER_FULLNAME@
 
-dn: CN=admin/admin,CN=admin,CN=Accounts,@DS_REALM_DN@
-cn: admin/admin
+dn: CN=Kerberos Administrator,CN=@IAM_USER_FULLNAME@,CN=Accounts,@DS_REALM_DN@
+cn: Kerberos Administrator role
 objectClass: account
 objectClass: roleInstance
-uid: admin/admin
-role: CN=admin,CN=Roles,@DS_REALM_DN@
-
-#dn: CN=kadmin/admin,CN=Accounts,@DS_REALM_DN@
-#cn: kadmin/admin
-#objectClass: account
-#objectClass: serviceAccount
-#uid: kadmin/admin
+objectClass: krb5Principal
+objectClass: krb5KDCEntry
+uid: @IAM_USER_NAME@/admin
+krb5PrincipalName: @IAM_USER_NAME@/admin@@DS_REALM_KRB@
+krb5KDCFlags: 126
+krb5KeyVersionNumber: 0
+krb5ExtendedAttributes:: MBqgAwEBAKETpxEYDzIwMjIwOTIyMjAyNzM1Wg==
+krb5ExtendedAttributes:: MAugAwEBAKEEqQIwAA==
+role: CN=Kerberos Administrator,CN=Roles,@DS_REALM_DN@

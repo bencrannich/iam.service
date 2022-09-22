@@ -136,7 +136,7 @@ olcObjectClasses: ( UnoClasses:1.11
   SUP top
   STRUCTURAL
   MUST uid
-  MAY ( cn $ description $ krb5PrincipalName ) )
+  MAY ( cn $ description $ krb5PrincipalName $ uidNumber $ gidNumber $ homeDirectory $ gecos $ loginShell ) )
 ## role
 #
 olcObjectClasses: ( UnoClasses:1.7
@@ -146,7 +146,8 @@ olcObjectClasses: ( UnoClasses:1.7
 #
 olcObjectClasses: ( UnoClasses:1.12
   NAME 'serviceAccount'
-  SUP account )
+  SUP account
+  MAY role )
 ## userAccount
 #
 olcObjectClasses: ( UnoClasses:1.13
@@ -158,6 +159,10 @@ olcObjectClasses: ( UnoClasses:1.14
   NAME 'roleInstance'
   SUP account
   MAY role )
+olcObjectClasses: ( UnoClasses:1.15
+  NAME 'group'
+  SUP account
+  MAY member )
 #### Auxilliary object classes
 #
 ## realm

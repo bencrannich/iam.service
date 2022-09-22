@@ -18,6 +18,14 @@ DS_DEBUG=${DS_DEBUG:-0}
 DSPID=0
 self="ds[$(hostname)]"
 
+IAM_USER_NAME=${IAM_USER_NAME:-admin}
+IAM_USER_FULLNAME=${IAM_USER_FULLNAME:-"Realm Administrator"}
+IAM_USER_UID=${IAM_USER_UID:-5000}
+IAM_USER_GID=${IAM_USER_GID:-5000}
+IAM_USER_HOME=${IAM_USER_HOME:-"/home/${IAM_USER_NAME}"}
+IAM_USER_SHELL=${IAM_USER_SHELL:-/bin/false}
+IAM_USER_GECOS=${IAM_USER_GECOS:-${IAM_USER_FULLNAME}}
+
 ds_is_running() {
 	DSPID=$(cat ${PIDFILE} 2>/dev/null)
 	if kill -0 "${DSPID}" 2>/dev/null ; then
@@ -82,14 +90,23 @@ ds_import_template()
 		-e "s!@DS_REALM_DNS@!${DS_REALM_DNS}!g" \
 		-e "s!@DS_REALM_KRB@!${DS_REALM_KRB}!g" \
 		-e "s!@DS_REALM_ORGNAME@!${DS_REALM_ORGNAME}!g" \
+		-e "s!@IAM_USER_NAME@!${IAM_USER_NAME}!g" \
+		-e "s!@IAM_USER_FULLNAME@!${IAM_USER_FULLNAME}!g" \
+		-e "s!@IAM_USER_UID@!${IAM_USER_UID}!g" \
+		-e "s!@IAM_USER_GID@!${IAM_USER_GID}!g" \
+		-e "s!@IAM_USER_HOME@!${IAM_USER_HOME}!g" \
+		-e "s!@IAM_USER_SHELL@!${IAM_USER_SHELL}!g" \
+		-e "s!@IAM_USER_GECOS@!${IAM_USER_GECOS}!g" \
 		< "$1" > ${initfile} || return
 	ds_import_file ${initfile}
 	result=$?
 	if ! [ $result -eq 0 ] ; then
 		printf "%s: failed import was:" >&2
 		cat ${initfile} >&2
+		rm -f "${initfile}"
 		return $result
 	fi
+	rm -f "${initfile}"
 	return 0
 }
 

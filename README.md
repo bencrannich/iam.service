@@ -23,31 +23,39 @@ fairly self-explanatory.
 $ make rebuild
 ... this will (re)build the container images and bring up a test instance,
 ... storing data in ./devdb
-... the initial password for admin/admin is "password" (see dev.env)
+... the initial password for "me" is "password" and the password for
+... "me/admin" is "admin" -- see dev/dev.env
+
 $ make dev-shell
 docker compose --project-name=iamdev -f docker-compose.yaml -f dev.yaml exec -it dev bash
-root@0123456789ab:~# kinit admin/admin
-admin/admin@EXAMPLE.COM's Password:
+root@0123456789ab:~# kinit me
+me@EXAMPLE.COM's Password: 
 root@0123456789ab:~# klist
 Credentials cache: FILE:/tmp/krb5cc_0
-        Principal: admin/admin@EXAMPLE.COM
+        Principal: me@EXAMPLE.COM
 
   Issued                Expires               Principal
-Sep 21 21:29:16 2022  Sep 22 21:29:16 2022  krbtgt/EXAMPLE.COM@EXAMPLE.COM
+Sep 22 21:27:32 2022  Mar 24 12:27:31 2023  krbtgt/EXAMPLE.COM@EXAMPLE.COM
 root@0123456789ab:~# kadmin
-admin/admin@EXAMPLE.COM's Password: 
-            Principal: admin/admin@EXAMPLE.COM
+kadmin> list *
+me/admin@EXAMPLE.COM's Password: 
+me
+me/admin
+krbtgt/EXAMPLE.COM
+kadmin/admin
+kadmin> get me
+            Principal: me@EXAMPLE.COM
     Principal expires: never
      Password expires: never
- Last password change: 2022-09-21 21:28:32 UTC
-      Max ticket life: 1 day
-   Max renewable life: 1 week
+ Last password change: 2022-09-22 21:25:13 UTC
+      Max ticket life: unlimited
+   Max renewable life: unlimited
                  Kvno: 1
                 Mkvno: unknown
 Last successful login: never
     Last failed login: never
    Failed login count: 0
-        Last modified: 2022-09-21 21:28:32 UTC
+        Last modified: 2022-09-22 21:25:13 UTC
              Modifier: unknown
            Attributes: 
              Keytypes: aes256-cts-hmac-sha1-96(pw-salt)[1], des3-cbc-sha1(pw-salt)[1], arcfour-hmac-md5(pw-salt)[1]
@@ -55,41 +63,23 @@ Last successful login: never
               Aliases: 
 
 kadmin> exit
-root@0123456789ab:~# exit
-exit
-$ make ds-dump
- :
- :
-dn: krb5PrincipalName=admin/admin@EXAMPLE.COM,o=Example Enterprises
-objectClass: top
-objectClass: account
-objectClass: krb5Principal
-objectClass: krb5KDCEntry
-krb5PrincipalName: admin/admin@EXAMPLE.COM
-uid: admin/admin
-krb5KeyVersionNumber: 1
-krb5ExtendedAttributes:: MBqgAwEBAKETpxEYDzIwMjIwOTIxMjEyODMyWg==
-krb5MaxLife: 86400
-krb5MaxRenew: 604800
-krb5KDCFlags: 126
-krb5Key:: ME+hKzApoAMCARKhIgQgwf04TI63pH5cw34JtA3ifGpmfLFgHVUEEAxNb2R7PgyiID
- AeoAMCAQOhFwQVRVhBTVBMRS5DT01hZG1pbmFkbWlu
-krb5Key:: MEehIzAhoAMCARChGgQYN80xZ+XjMsFePux2UpsqAfFYTAcqHK0voiAwHqADAgEDoR
- cEFUVYQU1QTEUuQ09NYWRtaW5hZG1pbg==
-krb5Key:: MD+hGzAZoAMCARehEgQQiEb36u6PsRetBr3YMLdYbKIgMB6gAwIBA6EXBBVFWEFNUE
- xFLkNPTWFkbWluYWRtaW4=
-structuralObjectClass: account
-entryUUID: 16667eb4-ce40-103c-8cc8-2b302354e5be
-creatorsName: gidNumber=0+uidNumber=0,cn=peercred,cn=external,cn=auth
-createTimestamp: 20220921212832Z
-entryCSN: 20220921212832.668399Z#000000#000#000000
-modifiersName: gidNumber=0+uidNumber=0,cn=peercred,cn=external,cn=auth
-modifyTimestamp: 20220921212832Z
-
-$ 
 ```
 
 Note that as the dev container has access to the LDAP socket so can use `kadmin -l` as well as `ldapsearch` etc.
+
+```
+root@0123456789ab:~# kadmin -l
+kadmin> list *
+me
+me/admin
+krbtgt/EXAMPLE.COM
+kadmin/admin
+kadmin> exit
+root@0123456789ab:~# exit
+exit
+```
+
+You can dump the contents of the directory with `make ds-dump`, which will generate `dump.ldif`
 
 
 ## Todo
@@ -100,7 +90,7 @@ Note that as the dev container has access to the LDAP socket so can use `kadmin 
 4. ds: schema updates + local schema overrides???
 5. ~~kdc: wait for ds availability~~
 6. kdc: fail better on initialisation
-7. ds: indices, database config (cross-check against DB_CONFIG)
+7. ds: ~~indices~~, database config (cross-check against DB_CONFIG)
 8. admin tools
 9. healthchecks
 10. unify scripts
@@ -109,11 +99,12 @@ Note that as the dev container has access to the LDAP socket so can use `kadmin 
 13. map `gidNumber=0+uidNumber=0,cn=peercred,cn=external,cn=auth` to something nicer
 14. does Heimdal HDB support LDAP connections over TCP/mTLS?
 15. online CA configurations (intermediate, infra services, users… + throwaway root in dev)
-16. kadmin: why is `hdb-ldap-create-base` ignored
+16. ~~kadmin: why is `hdb-ldap-create-base` ignored~~ **SOLUTION**: create users via LDAP first, and perform key management and attribute changes via `kadmin`
 17. ALL: database directories only need to be shared by certain containers
 18. ALL: tidy up environment variables
-19. kdc: initialise with --bare (just add krbtgt); add other entries via LDAP and then `kadmin -l modify`, etc.
+19. ~~kdc: initialise with --bare (just add krbtgt); add other entries via LDAP and then `kadmin -l modify`, etc.~~
 20. kdc: expand search scope
 21. dev: working pam-ldap and nss-ldap (authenticating the "admin" user)
-22. kdc: separate passwords for admin and admin/admin (duh)
-23. kdc: swap admin and admin/admin for templated $name and $name/admin
+22. ~~~kdc: separate passwords for admin and admin/admin (duh)~~~
+23. ~~~swap admin and admin/admin for templated $name and $name/admin~~~
+

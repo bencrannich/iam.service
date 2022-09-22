@@ -14,6 +14,13 @@ olcDbCheckpoint: 512 30
 olcLastMod: TRUE
 olcSuffix: @DS_REALM_DN@
 olcDbDirectory: @DBPATH@
+olcDbIndex: objectClass eq
+olcDbIndex: cn eq,sub,pres
+olcDbIndex: uid eq,sub,pres
+olcDbIndex: krb5PrincipalName eq
+olcDbIndex: uidNumber eq
+olcDbIndex: gidNumber eq
+olcDbIndex: role eq
 #
 #
 #olcRootDN: @ROOT_DN@,@REALM_DN@

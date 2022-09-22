@@ -1,23 +1,31 @@
 # @(#) $Uno$
 
-dn: UID=@DS_REALM_KRB@,CN=Roles,@DS_REALM_DN@
-uid: @DS_REALM_KRB@
+dn: CN=Kerberos Ticket-granting Ticket,CN=Roles,@DS_REALM_DN@
+uid: krbtgt
 objectClass: role
-cn: Kerberos ticket-granting ticket role for @DS_REALM_KRB@
-#member: uid=krbtgt,SVC=Kerberos KDC,CN=Authentication Service,CN=Identity Management,ENV=Infrastructure,@DS_REALM_DN@
+cn: Kerberos Ticket-granting Ticket 
+description: Built-in Kerberos Ticket-granting Ticket (krbtgt) role for @DS_REALM_KRB@
 
-dn: UID=admin,CN=Roles,@DS_REALM_DN@
+dn: CN=Kerberos Administrator,CN=Roles,@DS_REALM_DN@
+cn: Kerberos Administrator
 uid: admin
 objectClass: role
-cn: Kerberos Administrator
+description: Built-in Kerberos Administrator role for @DS_REALM_KRB@
 
-dn: UID=changepw,CN=Roles,@DS_REALM_DN@
+dn: CN=Kerberos Password Change,CN=Roles,@DS_REALM_DN@
+cn: Kerberos Password Change
 uid: changepw
 objectClass: role
-cn: Kerberos Password Change
+description: Kerberos Password Change role for @DS_REALM_KRB@
 
-dn: UID=diradm,CN=Roles,@DS_REALM_DN@
+dn: CN=Kerberos Replication,CN=Roles,@DS_REALM_DN@
+cn: Kerberos Replication
+uid: hprop
+objectClass: role
+description: Built-in Kerberos Replication role for @DS_REALM_KRB@
+
+dn: CN=Directory Administrator,CN=Roles,@DS_REALM_DN@
 uid: diradm
 objectClass: role
 cn: Directory Administrator
-
+description: Built-in Directory Administrator role for @DS_REEALM_KRB@

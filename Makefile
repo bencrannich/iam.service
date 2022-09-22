@@ -30,7 +30,7 @@ ds-logs:
 	docker compose ${COMPOSEFLAGS} logs ds -f
 
 ds-dump:
-	docker compose ${COMPOSEFLAGS} exec -it ds /app/entrypoint dump
+	docker compose ${COMPOSEFLAGS} exec -it ds /app/entrypoint dump > dump.ldif
 
 kdc-logs:
 	docker compose ${COMPOSEFLAGS} logs kdc -f
