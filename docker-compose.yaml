@@ -1,6 +1,7 @@
 version: "3.3"
 services:
   ds:
+    restart: unless-stopped
     build:
       target: ds
     ports:
@@ -10,6 +11,7 @@ services:
       - "./db:/app/db"
       - slaprun:/var/run/slapd
   kdc:
+    restart: unless-stopped
     build:
       target: kdc
     depends_on:
@@ -23,6 +25,7 @@ services:
       - slaprun:/var/run/slapd
       - "./db:/app/db"
   kadmin:
+    restart: unless-stopped
     build:
       target: kadmin
     depends_on:
