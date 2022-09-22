@@ -4,22 +4,26 @@ services:
     env_file:
       ./dev/dev.env
     volumes:
-      - "./devdb:/app/db"
+      - "./dev/data/ds:/app/db"
   kdc:
     env_file:
       ./dev/dev.env
+    environment:
+      IAM_KADMINDIR: /app/kadmin-data
+      IAM_SECRETSDIR: /app/secrets
     volumes:
-      - "./devdb:/app/db"
+      - "./dev/data/secrets:/app/secrets"
+      - "./dev/data/kdc:/app/db"
+      - "./dev/data/kadmin:/app/kadmin-data"
   kadmin:
     env_file:
       ./dev/dev.env
     volumes:
-      - "./devdb:/app/db"
+      - "./dev/data/kadmin:/app/db"
   dev:
     build:
       target: dev
     env_file:
       ./dev/dev.env
     volumes:
-      - "./devdb:/app/db"
       - slaprun:/var/run/slapd

@@ -22,12 +22,12 @@ fairly self-explanatory.
 ```
 $ make rebuild
 ... this will (re)build the container images and bring up a test instance,
-... storing data in ./devdb
+... storing data in ./dev/data
 ... the initial password for "me" is "password" and the password for
 ... "me/admin" is "admin" -- see dev/dev.env
 
 $ make dev-shell
-docker compose --project-name=iamdev -f docker-compose.yaml -f dev.yaml exec -it dev bash
+docker compose --project-name=iamdev -f docker-compose.yaml -f dev/dev.yaml exec -it dev bash
 root@0123456789ab:~# kinit me
 me@EXAMPLE.COM's Password: 
 root@0123456789ab:~# klist
@@ -100,10 +100,10 @@ You can dump the contents of the directory with `make ds-dump`, which will gener
 14. does Heimdal HDB support LDAP connections over TCP/mTLS?
 15. online CA configurations (intermediate, infra services, users… + throwaway root in dev)
 16. ~~kadmin: why is `hdb-ldap-create-base` ignored~~ **SOLUTION**: create users via LDAP first, and perform key management and attribute changes via `kadmin`
-17. ALL: database directories only need to be shared by certain containers
+17. ~~ALL: database directories only need to be shared by certain containers~~
 18. ALL: tidy up environment variables
 19. ~~kdc: initialise with --bare (just add krbtgt); add other entries via LDAP and then `kadmin -l modify`, etc.~~
-20. kdc: expand search scope
+20. ~~kdc: expand search scope~~
 21. dev: working pam-ldap and nss-ldap (authenticating the "admin" user)
 22. ~~~kdc: separate passwords for admin and admin/admin (duh)~~~
 23. ~~~swap admin and admin/admin for templated $name and $name/admin~~~

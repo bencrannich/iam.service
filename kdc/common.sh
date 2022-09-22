@@ -12,7 +12,14 @@ DBROOT="/app/db"
 LDAPI="/run/slapd/ldapi"
 DBPATH="${DBROOT}/kdc"
 self="$IAM_SERVICE[${IAM_KDC_HOSTNAME}]"
-IAM_KDC_MKEY_OPT=""
+IAM_SECRETSDIR="${IAM_SECRETSDIR:-${DBROOT}}"
+IAM_KADMINDIR="${IAM_KADMINDIR:-${DBROOT}}"
+
+if [ "${IAM_KDC_USE_MKEY}" = "yes" ] ; then
+	IAM_KDC_MKEY_OPT="mkey_file = ${DBPATH}/heimdal.mkey"
+else
+	IAM_KDC_MKEY_OPT=""
+fi
 
 KDC_DAEMON=/usr/lib/heimdal-servers/kdc
 KDC_ARGS="--config-file=${DBPATH}/kdc.conf --addresses=0.0.0.0"
@@ -45,9 +52,9 @@ ds_wait()
 
 kdc_wait()
 {
-	if ! [ -f ${DBPATH}/realm ]; then
+	if ! [ -f ${DBPATH}/kadmin.kt ]; then
 		printf "%s: waiting for realm to be initialised by the KDC...\n" "${self}" >&2
-		while ! [ -f ${DBPATH}/realm ] ; do
+		while ! [ -f ${DBPATH}/kadmin.kt ] ; do
 			sleep 1
 		done
 		printf "%s: realm initialised\n" "${self}" >&2
@@ -60,6 +67,8 @@ krb5conf_update()
 	rm -f /etc/krb5.conf
 	sed \
 		-e "s!@DS_REALM_KRB@!${DS_REALM_KRB}!g" \
+		-e "s!@DS_REALM_DN@!${DS_REALM_DN}!g" \
+		-e "s!@IAM_KDC_MKEY_OPT@!${IAM_KDC_MKEY_OPT}!g" \
 		< /app/etc/krb5.conf.in > /etc/krb5.conf
 }
 
@@ -72,6 +81,7 @@ kadmin_prepare()
 		sed \
 			-e "s!@DS_REALM_KRB@!${DS_REALM_KRB}!g" \
 			-e "s!@DS_REALM_DN@!${DS_REALM_DN}!g" \
+			-e "s!@IAM_KDC_MKEY_OPT@!${IAM_KDC_MKEY_OPT}!g" \
 			< /app/etc/kadmin.conf.in > ${DBPATH}/kadmin.conf
 	fi
 	rm -f /etc/heimdal-kdc/kadmin.conf
@@ -88,8 +98,6 @@ kdc_bootstrap()
 {
 	printf "%s: initialising realm %s\n" "$self" "${DS_REALM_KRB}" >&2
 	if [ "${IAM_KDC_USE_MKEY}" = "yes" ] ; then
-		IAM_KDC_MKEY_OPT="mkey_file = ${DBPATH}/heimdal.mkey"
-
 		if ! [ -r ${DBPATH}/heimdal.mkey ] ; then
 			printf "%s: generating %s master key\n" "$self" "${DS_REALM_KRB}" >&2
 			kstash --random-key  --key-file=${DBPATH}/heimdal.mkey || return
@@ -98,22 +106,22 @@ kdc_bootstrap()
 	printf "%s: initialising realm database for %s\n" "$self" "${DS_REALM_KRB}" >&2
 #	kadmin -l init --bare --realm-max-ticket-life=unlimited --realm-max-renewable-life=unlimited "${DS_REALM_KRB}" || return
 	kadmin -l cpw -r "krbtgt/${DS_REALM_KRB}"
-	echo "${IAM_USER_NAME}/admin all" > ${DBPATH}/kadmind.acl
+	echo "${IAM_USER_NAME}/admin all" > ${IAM_KADMINDIR}/kadmind.acl
 	printf "%s: storing kadmin principal's key (kadmin/admin@%s)\n" "$self" "${DS_REALM_KRB}" >&2
 	kadmin -l cpw -r "kadmin/admin@${DS_REALM_KRB}"
 
 	printf "%s: adding %s@%s and %s/admin@%s\n" "$self" "${IAM_USER_NAME}" "${DS_REALM_KRB}" "${IAM_USER_NAME}" "${DS_REALM_KRB}" >&2
-	rm -f ${DBPATH}/admin-pw ${DBPATH}/user-pw
+	rm -f ${IAM_SECRETSDIR}/admin-pw ${IAM_SECRETSDIR}/user-pw
 
 	if [ -z "$IAM_KDC_USERPW" ] ; then
 		newpw=$(pwgen -C 4 4 | sed -e 's! !-!g' -e 's!-$!!')
-		touch ${DBPATH}/user-pw
-		chmod 600 ${DBPATH}/user-pw
-		echo "${newpw}" > ${DBPATH}/user-pw
-		printf "%s: NOTICE: %s's account password written to %s\n" "${self}" "${IAM_USER_NAME}" "${DBPATH}/user-pw" >&2
+		touch ${IAM_SECRETSDIR}/user-pw
+		chmod 600 ${IAM_SECRETSDIR}/user-pw
+		echo "${newpw}" > ${IAM_SECRETSDIR}/user-pw
+		printf "%s: NOTICE: %s's account password written to %s\n" "${self}" "${IAM_USER_NAME}" "${IAM_SECRETSDIR}/user-pw" >&2
 	else
 		printf "%s: NOTICE: overriding %s's password via IAM_KDC_USERPW\n" "${self}" "${IAM_USER_NAME}" >&2
-		printf "%s: NOTICE: account password will NOT be written to %s\n" "${self}" "${DBPATH}/user-pw" >&2
+		printf "%s: NOTICE: account password will NOT be written to %s\n" "${self}" "${IAM_SECRETSDIR}/user-pw" >&2
 		newpw="${IAM_KDC_USERPW}"
 	fi
 	kadmin -l cpw -p "${newpw}" "${IAM_USER_NAME}@${DS_REALM_KRB}"
@@ -121,13 +129,13 @@ kdc_bootstrap()
 	
 	if [ -z "$IAM_KDC_ADMINPW" ] ; then
 		newpw=$(pwgen -C 4 4 | sed -e 's! !-!g' -e 's!-$!!')
-		touch ${DBPATH}/admin-pw
-		chmod 600 ${DBPATH}/admin-pw
-		echo "${newpw}" > ${DBPATH}/admin-pw
-		printf "%s: NOTICE: %s/admin's account password written to %s\n" "${self}" "${IAM_USER_NAME}" "${DBPATH}/admin-pw" >&2
+		touch ${IAM_SECRETSDIR}/admin-pw
+		chmod 600 ${IAM_SECRETSDIR}/admin-pw
+		echo "${newpw}" > ${IAM_SECRETSDIR}/admin-pw
+		printf "%s: NOTICE: %s/admin's account password written to %s\n" "${self}" "${IAM_USER_NAME}" "${IAM_SECRETSDIR}/admin-pw" >&2
 	else
 		printf "%s: NOTICE: overriding %s/admin's password via IAM_KDC_ADMINPW\n" "${self}" "${IAM_USER_NAME}" >&2
-		printf "%s: NOTICE: account password will NOT be written to %s\n" "${self}" "${DBPATH}/admin-pw" >&2
+		printf "%s: NOTICE: account password will NOT be written to %s\n" "${self}" "${IAM_SECRETSDIR}/admin-pw" >&2
 		newpw="${IAM_KDC_ADMINPW}"
 	fi
 	kadmin -l cpw -p "${newpw}" "${IAM_USER_NAME}/admin@${DS_REALM_KRB}"
@@ -175,6 +183,5 @@ kdc_prepare()
 		kdc_bootstrap || return
 	fi
 	printf "%s: generating kadmin.kt keytab for kadmin/admin@%s\n" "${self}" "${DS_REALM_KRB}" >&2
-	kadmin -l ext -k "${DBPATH}/kadmin.kt" "kadmin/admin@${DS_REALM_KRB}" || return
-
+	kadmin -l ext -k "${IAM_KADMINDIR}/kadmin.kt" "kadmin/admin@${DS_REALM_KRB}" || return
 }

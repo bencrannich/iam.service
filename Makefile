@@ -7,7 +7,7 @@
 #
 # The password for the admin/admin principal can be found in devdb/kdc/admin-pw
 
-COMPOSEFLAGS = --project-name=iamdev -f docker-compose.yaml -f dev.yaml
+COMPOSEFLAGS = --project-name=iamdev -f docker-compose.yaml -f dev/dev.yaml
 
 build:
 	docker compose ${COMPOSEFLAGS} build
@@ -23,7 +23,7 @@ clean: down
 	rm -rf devdb
 
 rebuild:
-	rm -rf devdb && mkdir -p devdb
+	rm -rf dev/data && mkdir -p dev/data dev/data/ds dev/data/kdc dev/data/kadmin dev/data/secrets dev/data/tls
 	docker compose ${COMPOSEFLAGS} up --force-recreate --build --remove-orphans -V --wait
 
 ds-logs:
