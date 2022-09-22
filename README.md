@@ -10,6 +10,9 @@ This stack contains:
 
 It is **NOT** remotely production-ready
 
+There's no kpasswdd because user accounts (and indeed ideally service accounts)
+should use PKINIT
+
 ## Testing locally
 
 See the top-level `Makefile` for a list of useful targets -- they should be
@@ -86,6 +89,9 @@ modifyTimestamp: 20220921212832Z
 $ 
 ```
 
+Note that as the dev container has access to the LDAP socket so can use `kadmin -l` as well as `ldapsearch` etc.
+
+
 ## Todo
 
 1. ds: Run container as unprivileged user
@@ -106,3 +112,8 @@ $
 16. kadmin: why is `hdb-ldap-create-base` ignored
 17. ALL: database directories only need to be shared by certain containers
 18. ALL: tidy up environment variables
+19. kdc: initialise with --bare (just add krbtgt); add other entries via LDAP and then `kadmin -l modify`, etc.
+20. kdc: expand search scope
+21. dev: working pam-ldap and nss-ldap (authenticating the "admin" user)
+22. kdc: separate passwords for admin and admin/admin (duh)
+23. kdc: swap admin and admin/admin for templated $name and $name/admin
