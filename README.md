@@ -105,6 +105,5 @@ You can dump the contents of the directory with `make ds-dump`, which will gener
 19. ~~kdc: initialise with --bare (just add krbtgt); add other entries via LDAP and then `kadmin -l modify`, etc.~~
 20. ~~kdc: expand search scope~~
 21. dev: working pam-ldap and nss-ldap (authenticating the "admin" user)
-22. ~~~kdc: separate passwords for admin and admin/admin (duh)~~~
-23. ~~~swap admin and admin/admin for templated $name and $name/admin~~~
-
+22. ~~kdc: separate passwords for admin and admin/admin (duh)~~
+23. ~~swap admin and admin/admin for templated $name and $name/admin~~
