@@ -160,7 +160,7 @@ ds_prepare()
 		printf "%s: realm <%s> successfully initialised\n" "${self}" "${DS_REALM_DN}" >&2
 	fi
 
-	if ! [ -f "${DBPATH}/DB_CONFIG"] ; then
+	if ! [ -f "${DBPATH}/DB_CONFIG" ] ; then
 		cat >"${DBPATH}/DB_CONFIG" <<EOF
 set lk_detect DB_LOCK_DEFAULT
 set_flags DB_TXN_NOSYNC

@@ -82,16 +82,18 @@ kadmin_prepare()
 kdc_bootstrap()
 {
 	printf "%s: initialising realm %s\n" "$self" "${DS_REALM_KRB}" >&2
-	printf "%s: generating %s master key\n" "$self" "${DS_REALM_KRB}" >&2
-	kstash --random-key  --key-file=${DBPATH}/m-key || return
+	if ! [ -r ${DBPATH}/m-key ] ; then
+		printf "%s: generating %s master key\n" "$self" "${DS_REALM_KRB}" >&2
+		kstash --random-key  --key-file=${DBPATH}/m-key || return
+	fi
 	printf "%s: initialising realm database for %s\n" "$self" "${DS_REALM_KRB}" >&2
 	kadmin -l init --realm-max-ticket-life=unlimited --realm-max-renewable-life=unlimited "${DS_REALM_KRB}" || return
 
 	echo 'admin/admin all' > ${DBPATH}/kadmind.acl
 	printf "%s: storing kadmin principal's key (kadmin/admin@%s)\n" "$self" "${DS_REALM_KRB}" >&2
-	kadmin -l ext -k "${DBPATH}/kadmin.kt" "kadmin/admin@${DS_REALM_KRB}" || true
+	kadmin -l ext -k "${DBPATH}/kadmin.kt" "kadmin/admin@${DS_REALM_KRB}" || return
 
-	printf "%s: adding admin/admin@%s\n" "$self" "${DS_REALM_KRB}"
+	printf "%s: adding admin@%s and admin/admin@%s\n" "$self" "${DS_REALM_KRB}" "${DS_REALM_KRB}" >&2
 	newpw=$(pwgen -C 4 4 | sed -e 's! !-!g' -e 's!-$!!')
 	rm -f ${DBPATH}/admin-pw
 	touch ${DBPATH}/admin-pw
@@ -104,7 +106,11 @@ kdc_bootstrap()
 		printf "%s: NOTICE: account password will NOT be written to %s\n" "${self}" "${DBPATH}/admin-pw" >&2
 		newpw="${IAM_KDC_ADMINPW}"
 	fi
-	kadmin -l add -p "${newpw}" --use-defaults "admin/admin@${DS_REALM_KRB}" || return
+#	kadmin -l add -p "${newpw}" --use-defaults "admin/admin@${DS_REALM_KRB}" || return
+	kadmin -l modify -a "-disallow-svr,-disallow-renewable,-disallow-forwardable,-disallow-postdated" "admin@${DS_REALM_KRB}"
+	kadmin -l cpw -p "${newpw}" "admin@${DS_REALM_KRB}" || return
+	kadmin -l modify -a "-disallow-svr,disallow-renewable,disallow-forwardable,-disallow-postdated" "admin/admin@${DS_REALM_KRB}"
+	kadmin -l cpw -p "${newpw}" "admin/admin@${DS_REALM_KRB}" || return
 	unset newpw
 
 		# we should really just check the principal list via kadmin

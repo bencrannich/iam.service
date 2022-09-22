@@ -1,3 +1,26 @@
 dn: CN=Accounts,@DS_REALM_DN@
 cn: Accounts
 objectClass: container
+
+dn: CN=admin,CN=Accounts,@DS_REALM_DN@
+cn: admin
+objectClass: account
+objectClass: userAccount
+objectClass: posixAccount
+uid: admin
+uidNumber: 500
+gidNumber: 500
+homeDirectory: /tmp
+
+dn: CN=admin/admin,CN=admin,CN=Accounts,@DS_REALM_DN@
+cn: admin/admin
+objectClass: account
+objectClass: roleInstance
+uid: admin/admin
+role: CN=admin,CN=Roles,@DS_REALM_DN@
+
+#dn: CN=kadmin/admin,CN=Accounts,@DS_REALM_DN@
+#cn: kadmin/admin
+#objectClass: account
+#objectClass: serviceAccount
+#uid: kadmin/admin

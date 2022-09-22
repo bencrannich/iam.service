@@ -3,9 +3,9 @@ default = STDERR
 
 [kdc]
 database = {
-	dbname = ldap:@DS_REALM_DN@
+	dbname = ldap:CN=Accounts,@DS_REALM_DN@
 	hdb-ldap-structural-object = Account
-	hdb-ldap-create-base = CN=Accounts,@DS_REALM_DN@
+#	hdb-ldap-create-base = CN=Accounts,@DS_REALM_DN@
 	acl_file = /app/db/kdc/kadmind.acl
 	mkey_file = /app/db/kdc/heimdal.mkey
 }

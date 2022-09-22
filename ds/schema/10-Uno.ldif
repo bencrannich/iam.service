@@ -35,7 +35,7 @@ olcAttributeTypes: ( UnoAttributes:4
 ## certificateSerialNumber
 #
 olcAttributeTypes: ( UnoAttributes:5
-  NAME ( 'csn' 'certificateSertialNumber' )
+  NAME ( 'csn' 'certificateSerialNumber' )
   DESC 'The serial number of this certificate'
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 )
 ## advertisedServiceName
@@ -61,6 +61,12 @@ olcAttributeTypes: ( UnoAttributes:8
 olcAttributeTypes: ( UnoAttributes:9
   NAME 'issuer'
   DESC 'The issuer of certificates for this entity'
+  SUP distinguishedName )
+#
+## role
+olcAttributeTypes: ( UnoAttributes:10
+  NAME 'role'
+  DESC 'The role this instance relates to'
   SUP distinguishedName )
 #### Abstract object classes
 #
@@ -146,6 +152,12 @@ olcObjectClasses: ( UnoClasses:1.12
 olcObjectClasses: ( UnoClasses:1.13
   NAME 'userAccount'
   SUP account )
+## roleInstance
+#
+olcObjectClasses: ( UnoClasses:1.14
+  NAME 'roleInstance'
+  SUP account
+  MAY role )
 #### Auxilliary object classes
 #
 ## realm
