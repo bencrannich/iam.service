@@ -5,8 +5,8 @@ default = STDERR
 database = {
 	dbname = ldap:@DS_REALM_DN@
 	hdb-ldap-structural-object = Account
-	acl_file = /app/db/kdc/kadmind.acl
-	mkey_file = /app/db/kdc/heimdal.mkey
+	acl_file = /app/db/kadmind.acl
+	@IAM_KADMIN_MKEY_OPT@
 }
 
 [kadmin]

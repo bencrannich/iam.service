@@ -8,6 +8,8 @@ objectClass: account
 objectClass: userAccount
 objectClass: krb5Principal
 objectClass: krb5KDCEntry
+objectClass: posixAccount
+objectClass: posixGroup
 uid: @IAM_USER_NAME@
 description: Built-in realm administrator account
 krb5PrincipalName: @IAM_USER_NAME@@@DS_REALM_KRB@

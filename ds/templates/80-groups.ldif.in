@@ -1,3 +1,12 @@
 dn: CN=Groups,@DS_REALM_DN@
 cn: Groups
 objectClass: container
+
+dn: CN=All users,CN=Groups,@DS_REALM_DN@
+cn: All users
+objectClass: group
+objectClass: posixGroup
+uid: everyone
+gidNumber: 20000
+memberUid: me
+description: Built-in group that all user accounts are automatically members of

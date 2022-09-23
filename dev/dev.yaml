@@ -27,3 +27,7 @@ services:
       ./dev/dev.env
     volumes:
       - slaprun:/var/run/slapd
+      - "./:/workspace:cached"
+      - home:/me
+volumes:
+  home:

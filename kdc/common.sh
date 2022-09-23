@@ -17,15 +17,17 @@ IAM_KADMINDIR="${IAM_KADMINDIR:-${DBROOT}}"
 
 if [ "${IAM_KDC_USE_MKEY}" = "yes" ] ; then
 	IAM_KDC_MKEY_OPT="mkey_file = ${DBPATH}/heimdal.mkey"
+	IAM_Kadmin_MKEY_OPT="mkey_file = ${IAM_KADMINDIR}/heimdal.mkey"
 else
 	IAM_KDC_MKEY_OPT=""
+	IAM_KADMIN_MKEY_OPT=""
 fi
 
 KDC_DAEMON=/usr/lib/heimdal-servers/kdc
 KDC_ARGS="--config-file=${DBPATH}/kdc.conf --addresses=0.0.0.0"
 
 KADMIND_DAEMON=/usr/lib/heimdal-servers/kadmind
-KADMIND_ARGS="--config-file=${DBPATH}/kadmin.conf -r ${DS_REALM_KRB} --keytab=${DBPATH}/kadmin.kt --debug"
+KADMIND_ARGS="--config-file=${IAM_KADMINDIR}/kadmin.conf -r ${DS_REALM_KRB} --keytab=${IAM_KADMINDIR}/kadmin.kt --debug"
 
 #KPASSWDD_ARGS="--config-file=${DBPATH}/kpasswd.conf"
 #PRIMARY_ARGS="--config-file=${DBPATH}/primary.conf -r ${DS_REALM_KRB} --hostname=${IAM_KDC_HOSTNAME}"
@@ -52,9 +54,9 @@ ds_wait()
 
 kdc_wait()
 {
-	if ! [ -f ${DBPATH}/kadmin.kt ]; then
+	if ! [ -f ${IAM_KADMINDIR}/kadmin.kt ]; then
 		printf "%s: waiting for realm to be initialised by the KDC...\n" "${self}" >&2
-		while ! [ -f ${DBPATH}/kadmin.kt ] ; do
+		while ! [ -f ${IAM_KADMINDIR}/kadmin.kt ] ; do
 			sleep 1
 		done
 		printf "%s: realm initialised\n" "${self}" >&2
@@ -69,6 +71,7 @@ krb5conf_update()
 		-e "s!@DS_REALM_KRB@!${DS_REALM_KRB}!g" \
 		-e "s!@DS_REALM_DN@!${DS_REALM_DN}!g" \
 		-e "s!@IAM_KDC_MKEY_OPT@!${IAM_KDC_MKEY_OPT}!g" \
+		-e "s!@IAM_KADMIN_MKEY_OPT@!${IAM_KADMIN_MKEY_OPT}!g" \
 		< /app/etc/krb5.conf.in > /etc/krb5.conf
 }
 
@@ -77,19 +80,20 @@ kadmin_prepare()
 	krb5conf_update
 	ds_wait
 	kdc_wait
-	if test -r /app/etc/kadmin.conf.in && ! test -r ${DBPATH}/kadmin.conf ; then
+	if test -r /app/etc/kadmin.conf.in && ! test -r ${IAM_KADMINDIR}/kadmin.conf ; then
 		sed \
 			-e "s!@DS_REALM_KRB@!${DS_REALM_KRB}!g" \
 			-e "s!@DS_REALM_DN@!${DS_REALM_DN}!g" \
 			-e "s!@IAM_KDC_MKEY_OPT@!${IAM_KDC_MKEY_OPT}!g" \
-			< /app/etc/kadmin.conf.in > ${DBPATH}/kadmin.conf
+			-e "s!@IAM_KADMIN_MKEY_OPT@!${IAM_KADMIN_MKEY_OPT}!g" \
+			< /app/etc/kadmin.conf.in > ${IAM_KADMINDIR}/kadmin.conf
 	fi
 	rm -f /etc/heimdal-kdc/kadmin.conf
-	if test -r ${DBPATH}/kadmin.conf ; then
-		ln -s ${DBPATH}/kadmin.conf /etc/heimdal-kdc/kadmin.conf
+	if test -r ${IAM_KADMINDIR}/kadmin.conf ; then
+		ln -s ${IAM_KADMINDIR}/kadmin.conf /etc/heimdal-kdc/kadmin.conf
 	fi
 
-	if ! test -f ${DBPATH}/kadmind.acl ; then
+	if ! test -f ${IAM_KADMINDIR}/kadmind.acl ; then
 		printf "%s: WARNING: Remote administration is not possible: kdc/kadmind.acl is missing\n" "${self}" >&2
 	fi
 }
@@ -101,13 +105,14 @@ kdc_bootstrap()
 		if ! [ -r ${DBPATH}/heimdal.mkey ] ; then
 			printf "%s: generating %s master key\n" "$self" "${DS_REALM_KRB}" >&2
 			kstash --random-key  --key-file=${DBPATH}/heimdal.mkey || return
+			cp ${DBPATH}/heimdal/mkey ${IAM_KADMINDIR}/
 		fi
 	fi
 	printf "%s: initialising realm database for %s\n" "$self" "${DS_REALM_KRB}" >&2
 #	kadmin -l init --bare --realm-max-ticket-life=unlimited --realm-max-renewable-life=unlimited "${DS_REALM_KRB}" || return
 	kadmin -l cpw -r "krbtgt/${DS_REALM_KRB}"
 	echo "${IAM_USER_NAME}/admin all" > ${IAM_KADMINDIR}/kadmind.acl
-	printf "%s: storing kadmin principal's key (kadmin/admin@%s)\n" "$self" "${DS_REALM_KRB}" >&2
+	printf "%s: generating new key for kadmin/admin@%s\n" "$self" "${DS_REALM_KRB}" >&2
 	kadmin -l cpw -r "kadmin/admin@${DS_REALM_KRB}"
 
 	printf "%s: adding %s@%s and %s/admin@%s\n" "$self" "${IAM_USER_NAME}" "${DS_REALM_KRB}" "${IAM_USER_NAME}" "${DS_REALM_KRB}" >&2

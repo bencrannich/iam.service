@@ -20,7 +20,7 @@ down:
 	docker compose ${COMPOSEFLAGS} down --remove-orphans
 
 clean: down
-	rm -rf devdb
+	rm -rf dev/data dump.ldif
 
 rebuild:
 	rm -rf dev/data && mkdir -p dev/data dev/data/ds dev/data/kdc dev/data/kadmin dev/data/secrets dev/data/tls
@@ -34,6 +34,9 @@ ds-dump:
 
 kdc-logs:
 	docker compose ${COMPOSEFLAGS} logs kdc -f
+
+dev-logs:
+	docker compose ${COMPOSEFLAGS} logs dev -f
 
 kadmin-logs:
 	docker compose ${COMPOSEFLAGS} logs kadmin -f

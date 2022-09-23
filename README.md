@@ -18,25 +18,38 @@ should use PKINIT
 See the top-level `Makefile` for a list of useful targets -- they should be
 fairly self-explanatory.
 
-
 ```
 $ make rebuild
 ... this will (re)build the container images and bring up a test instance,
 ... storing data in ./dev/data
+...
 ... the initial password for "me" is "password" and the password for
 ... "me/admin" is "admin" -- see dev/dev.env
+...
+... the dev container is configured to perform NSS LDAP lookups, and so
+... any users (or groups, hosts, etc.) added to the directory should be
+... visible to the system, as shown in the transcript below:
 
 $ make dev-shell
 docker compose --project-name=iamdev -f docker-compose.yaml -f dev/dev.yaml exec -it dev bash
-root@0123456789ab:~# kinit me
+root@0123456789ab:~# finger me
+Login: me                               Name: Test User
+Directory: /me                          Shell: /bin/bash
+Never logged in.
+No mail.
+No Plan.
+root@0123456789ab:~# id me
+uid=5000(me) gid=5000(Test User) groups=5000(Test User),20000(All users)
+root@0123456789ab:~# su - me
+me@0123456789ab:~$ kinit
 me@EXAMPLE.COM's Password: 
-root@0123456789ab:~# klist
-Credentials cache: FILE:/tmp/krb5cc_0
+me@0123456789ab:~$ klist
+Credentials cache: FILE:/tmp/krb5cc_5000
         Principal: me@EXAMPLE.COM
 
   Issued                Expires               Principal
-Sep 22 21:27:32 2022  Mar 24 12:27:31 2023  krbtgt/EXAMPLE.COM@EXAMPLE.COM
-root@0123456789ab:~# kadmin
+Sep 23 12:50:17 2022  Mar 25 03:50:15 2023  krbtgt/EXAMPLE.COM@EXAMPLE.COM
+me@0123456789ab:~$ kadmin
 kadmin> list *
 me/admin@EXAMPLE.COM's Password: 
 me
@@ -47,7 +60,7 @@ kadmin> get me
             Principal: me@EXAMPLE.COM
     Principal expires: never
      Password expires: never
- Last password change: 2022-09-22 21:25:13 UTC
+ Last password change: 2022-09-23 12:49:45 UTC
       Max ticket life: unlimited
    Max renewable life: unlimited
                  Kvno: 1
@@ -55,7 +68,7 @@ kadmin> get me
 Last successful login: never
     Last failed login: never
    Failed login count: 0
-        Last modified: 2022-09-22 21:25:13 UTC
+        Last modified: 2022-09-23 12:49:45 UTC
              Modifier: unknown
            Attributes: 
              Keytypes: aes256-cts-hmac-sha1-96(pw-salt)[1], des3-cbc-sha1(pw-salt)[1], arcfour-hmac-md5(pw-salt)[1]
@@ -63,9 +76,16 @@ Last successful login: never
               Aliases: 
 
 kadmin> exit
-```
+me@0123456789ab:~$ id
+uid=5000(me) gid=5000(Test User) groups=5000(Test User),20000(All users)
+me@0123456789ab:~$ pwd
+/me
+me@0123456789ab:~$ exit
+logout
+root@0123456789ab:~# exit
+exit
 
-Note that as the dev container has access to the LDAP socket so can use `kadmin -l` as well as `ldapsearch` etc.
+Note that as the dev container has access to the LDAP socket, it can use `kadmin -l` as well as `ldapsearch` etc.
 
 ```
 root@0123456789ab:~# kadmin -l
@@ -107,3 +127,6 @@ You can dump the contents of the directory with `make ds-dump`, which will gener
 21. dev: working pam-ldap and nss-ldap (authenticating the "admin" user)
 22. ~~kdc: separate passwords for admin and admin/admin (duh)~~
 23. ~~swap admin and admin/admin for templated $name and $name/admin~~
+24. ds: ACLs ACLs ACLs
+25. ds: replica bootstrap
+26. kdc: mkey in KMS

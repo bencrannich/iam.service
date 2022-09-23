@@ -54,13 +54,14 @@ RUN mv /var/lib/heimdal-kdc /var/lib/heimdal-kdc.dist && ln -sf /app/db/kdc /var
 ## Development container
 
 FROM kerberos AS dev
-RUN apt-get install -qq procps nano libnss-ldap finger less
-COPY kdc/krb5.dev.conf.in /app/etc/krb5.conf.in
-COPY kdc/entrypoint.dev /app/entrypoint
-COPY dev/libnss-ldap.conf /etc/
+RUN apt-get install -qq procps nano nslcd libnss-ldapd finger less
+COPY dev/krb5.conf /etc/
+COPY dev/nslcd.conf /etc/
 COPY dev/nsswitch.conf /etc/
-
-ENTRYPOINT [ "/app/entrypoint" ]
+RUN mkdir /me
+VOLUME [ "/me" ]
+ENTRYPOINT [ "/bin/sh", "-c" ]
+CMD [ "/usr/sbin/nslcd --debug" ]
 
 ## Kerberos Key Distribution Center (KDC) container
 
