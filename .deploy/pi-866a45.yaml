@@ -1,0 +1,30 @@
+version: "3.3"
+  services:
+    ds:
+      ports:
+        - "192.168.100.8:636:636/tcp"
+      env_file:
+        ./pi-866a45.env
+      volumes:
+        - "/fs/d1/services/iam/ds:/app/db"
+      domainname: OST.BENCRANNICH.NET
+    kdc:
+      ports:
+        - "192.168.100.5:88:88/tcp"
+        - "192.168.100.5:88:88/udp"
+      env_file:
+        ./pi-866a45.env
+      environment:
+        IAM_KADMINDIR: /app/kadmin-data
+      volumes:
+        - "/fs/d1/services/iam/kdc:/app/db"
+        - "/fs/d1/services/iam/kadmin:/app/kadmin-data"
+      domainname: OST.BENCRANNICH.NET
+    kadmin:
+      ports:
+        - "192.168.100.6:749:749/tcp"
+      env_file:
+        ./pi-866a45.env
+      volumes:
+        - "/fs/d1/services/iam/kadmin:/app/db"
+      domainname: OST.BENCRANNICH.NET

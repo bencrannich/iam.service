@@ -14,6 +14,10 @@ ONBUILD RUN apt-get update
 
 FROM smallstep/step-cli as step
 
+## Certificate Authority (CA) container
+
+FROM smallstep/step-ca AS ca
+
 ## LDAP Directory Service (DS) container
 
 FROM core AS ds
@@ -54,7 +58,7 @@ RUN mv /var/lib/heimdal-kdc /var/lib/heimdal-kdc.dist && ln -sf /app/db/kdc /var
 ## Development container
 
 FROM kerberos AS dev
-RUN apt-get install -qq procps nano nslcd libnss-ldapd finger less
+RUN apt-get install -qq procps nano nslcd libnss-ldapd finger less libpam-krb5
 COPY dev/krb5.conf /etc/
 COPY dev/nslcd.conf /etc/
 COPY dev/nsswitch.conf /etc/

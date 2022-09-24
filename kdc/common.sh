@@ -16,8 +16,8 @@ IAM_SECRETSDIR="${IAM_SECRETSDIR:-${DBROOT}}"
 IAM_KADMINDIR="${IAM_KADMINDIR:-${DBROOT}}"
 
 if [ "${IAM_KDC_USE_MKEY}" = "yes" ] ; then
-	IAM_KDC_MKEY_OPT="mkey_file = ${DBPATH}/heimdal.mkey"
-	IAM_Kadmin_MKEY_OPT="mkey_file = ${IAM_KADMINDIR}/heimdal.mkey"
+	IAM_KDC_MKEY_OPT="mkey_file = ${IAM_KADMINDIR}/heimdal.mkey"
+	IAM_KADMIN_MKEY_OPT="mkey_file = ${IAM_KADMINDIR}/heimdal.mkey"
 else
 	IAM_KDC_MKEY_OPT=""
 	IAM_KADMIN_MKEY_OPT=""
@@ -102,10 +102,9 @@ kdc_bootstrap()
 {
 	printf "%s: initialising realm %s\n" "$self" "${DS_REALM_KRB}" >&2
 	if [ "${IAM_KDC_USE_MKEY}" = "yes" ] ; then
-		if ! [ -r ${DBPATH}/heimdal.mkey ] ; then
+		if ! [ -r ${IAM_KADMINDIR}/heimdal.mkey ] ; then
 			printf "%s: generating %s master key\n" "$self" "${DS_REALM_KRB}" >&2
-			kstash --random-key  --key-file=${DBPATH}/heimdal.mkey || return
-			cp ${DBPATH}/heimdal/mkey ${IAM_KADMINDIR}/
+			kstash --random-key  --key-file=${IAM_KADMINDIR}/heimdal.mkey || return
 		fi
 	fi
 	printf "%s: initialising realm database for %s\n" "$self" "${DS_REALM_KRB}" >&2

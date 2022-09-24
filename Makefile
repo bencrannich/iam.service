@@ -13,18 +13,19 @@ build:
 	docker compose ${COMPOSEFLAGS} build
 
 up: build
-	mkdir -p devdb
+	dev/bootstrap-docker.sh ${COMPOSEFLAGS}
 	docker compose ${COMPOSEFLAGS} up
 
 down:
 	docker compose ${COMPOSEFLAGS} down --remove-orphans
 
 clean: down
-	rm -rf dev/data dump.ldif
+	rm -rf dev/data devdb ds/testdb dump.ldif
 
-rebuild:
-	rm -rf dev/data && mkdir -p dev/data dev/data/ds dev/data/kdc dev/data/kadmin dev/data/secrets dev/data/tls
-	docker compose ${COMPOSEFLAGS} up --force-recreate --build --remove-orphans -V --wait
+rebuild: clean
+	docker compose ${COMPOSEFLAGS} build 
+	dev/bootstrap-docker.sh ${COMPOSEFLAGS}
+	docker compose ${COMPOSEFLAGS} up -V --wait
 
 ds-logs:
 	docker compose ${COMPOSEFLAGS} logs ds -f
@@ -41,6 +42,9 @@ dev-logs:
 kadmin-logs:
 	docker compose ${COMPOSEFLAGS} logs kadmin -f
 
+root-ca-logs:
+	docker compose ${COMPOSEFLAGS} logs root-ca -f
+
 ds-shell:
 	docker compose ${COMPOSEFLAGS} exec -it ds bash
 
@@ -52,3 +56,13 @@ kadmin-shell:
 
 dev-shell:
 	docker compose ${COMPOSEFLAGS} exec -it dev bash
+
+root-ca-shell:
+	docker compose ${COMPOSEFLAGS} exec -it root-ca bash
+
+root-ca-health:
+	docker compose ${COMPOSEFLAGS} exec -e STEPDEBUG=1 -it root-ca step ca health
+
+dev-login:
+	docker compose ${COMPOSEFLAGS} exec -it dev /bin/login
+

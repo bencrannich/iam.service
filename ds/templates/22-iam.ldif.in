@@ -20,7 +20,7 @@ advertisedServiceProtocol: tcp
 dn: CN=Authentication Service,CN=Identity Management,ENV=Infrastructure,@DS_REALM_DN@
 cn: Authentication Service
 objectClass: service
-description: Kerberos directory service
+description: Kerberos authentication service
 
 dn: SVC=Kerberos KDC,CN=Authentication Service,CN=Identity Management,ENV=Infrastructure,@DS_REALM_DN@
 svc: Kerberos KDC

@@ -24,7 +24,7 @@ loginShell: @IAM_USER_SHELL@
 gecos: @IAM_USER_FULLNAME@
 
 dn: CN=Kerberos Administrator,CN=@IAM_USER_FULLNAME@,CN=Accounts,@DS_REALM_DN@
-cn: Kerberos Administrator role
+cn: Kerberos Administrator
 objectClass: account
 objectClass: roleInstance
 objectClass: krb5Principal
@@ -36,3 +36,4 @@ krb5KeyVersionNumber: 0
 krb5ExtendedAttributes:: MBqgAwEBAKETpxEYDzIwMjIwOTIyMjAyNzM1Wg==
 krb5ExtendedAttributes:: MAugAwEBAKEEqQIwAA==
 role: CN=Kerberos Administrator,CN=Roles,@DS_REALM_DN@
+description: @IAM_USER_FULLNAME@'s Kerberos Administrator role
