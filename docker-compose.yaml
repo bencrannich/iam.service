@@ -8,12 +8,20 @@ services:
       - slaprun:/var/run/slapd
     networks:
       - iamnet
+    depends_on:
+      infra-ca:
+        condition: service_healthy
   kdc:
     restart: unless-stopped
     build:
       target: kdc
     depends_on:
-      - ds
+      infra-ca:
+        condition: service_healthy
+      user-ca:
+        condition: service_healthy
+      ds:
+        condition: service_started
     volumes:
       - slaprun:/var/run/slapd
     networks:

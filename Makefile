@@ -33,6 +33,9 @@ ds-logs:
 ds-dump:
 	docker compose ${COMPOSEFLAGS} exec -it ds /app/entrypoint dump > dump.ldif
 
+logs:
+	docker compose ${COMPOSEFLAGS} logs -f
+
 kdc-logs:
 	docker compose ${COMPOSEFLAGS} logs kdc -f
 
@@ -59,6 +62,9 @@ dev-shell:
 
 root-ca-shell:
 	docker compose ${COMPOSEFLAGS} exec -it root-ca bash
+
+infra-ca-shell:
+	docker compose ${COMPOSEFLAGS} exec -it infra-ca bash
 
 root-ca-health:
 	docker compose ${COMPOSEFLAGS} exec -e STEPDEBUG=1 -it root-ca step ca health

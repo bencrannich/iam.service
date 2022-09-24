@@ -52,7 +52,8 @@ services:
     volumes:
       - "./dev/data/infra-ca:/home/step"
     depends_on:
-      - root-ca
+      root-ca:
+        condition: service_healthy
     healthcheck:
       interval: 5s
   user-ca:
@@ -61,7 +62,8 @@ services:
     volumes:
       - "./dev/data/user-ca:/home/step"
     depends_on:
-      - root-ca
+      root-ca:
+        condition: service_healthy
     healthcheck:
       interval: 5s
 volumes:

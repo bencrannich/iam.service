@@ -26,11 +26,13 @@ log "storing instance data in ${DATADIR}"
 mkdir -p ${DATADIR} ${DATADIR}/tls ${DATADIR}/secrets
 
 # In production deployment, we use two independent hardware-managed root CA keys,
-# A1 and B1, which are used to cross-sign a common intermediate, X1, which is then
-# used to issue certificates for production subsidiary CAs within the realm.
+# A1 and B1, which are used to cross-sign a common intermediate, X1, also stored
+# on a hardware token, and which is then used to issue certificates for
+# online subsidiary CAs within the realm.
 #
-# For development, we generate A1, B1, and X1, and spin up a StepCA instance
-# to issue certificates from X1 as a stand-in for the realm offline intermediate.
+# For development, we generate A1, B1, and X1, and spin up an additional StepCA
+# instance to issue certificates from X1 as a stand-in for the real (offline)
+# intermediate.
 
 log "generating the ${DS_REALM_ORGNAME} Root A1 certificate authority"
 cat >${DATADIR}/openssl-root-a1.cnf <<EOF
@@ -112,8 +114,6 @@ openssl x509 -x509toreq -in ${DATADIR}/tls/root-b1.pem -signkey ${DATADIR}/secre
 
 log "Cross-signing root certificates"
 
-set -x
-
 # Sign A1 with B1
 openssl x509 -sha512 -req -extfile ${DATADIR}/openssl-root-b1.cnf -extensions root_b1_extensions -set_serial 0x${serial_a1} -CA ${DATADIR}/tls/root-b1.pem -CAkey ${DATADIR}/secrets/root-b1.key.pem -in ${DATADIR}/tls/root-a1.req.pem -out ${DATADIR}/tls/root-a1.b1.pem
 # Sign B1 with A1
@@ -171,8 +171,8 @@ cp ${DATADIR}/tls/roots.txt ${DATADIR}/tls/inter.txt
 cp ${DATADIR}/tls/roots.pem ${DATADIR}/tls/inter.pem
 for cert in inter-x1.a1 inter-x1.b1 ; do
 	openssl x509 -in ${DATADIR}/tls/${cert}.pem -text -out ${DATADIR}/tls/${cert}.txt
-	openssl x509 -in ${DATADIR}/tls/${cert}.pem -text >> ${DATADIR}/tls/roots.txt
-	cat ${DATADIR}/tls/${cert}.pem >> ${DATADIR}/tls/roots.pem
+	openssl x509 -in ${DATADIR}/tls/${cert}.pem -text >> ${DATADIR}/tls/inter.txt
+	cat ${DATADIR}/tls/${cert}.pem >> ${DATADIR}/tls/inter.pem
 done
 
 openssl x509 -in ${DATADIR}/tls/inter-x1.pem -noout -text > ${DATADIR}/tls/inter-x1.txt
@@ -213,43 +213,159 @@ cat >${DATADIR}/root-ca/config/defaults.json <<EOF
 }
 EOF
 cp ${DATADIR}/root-ca/secrets/password ${DATADIR}/secrets/root-ca.password
+
+
+
 docker compose "$@" create root-ca
 docker compose "$@" start root-ca
+
+# Now the X1 CA is running, create provisioners for bootstrapping the
+# subsidiary CAs
+openssl rand -hex 16 -out ${DATADIR}/root-ca/infra-ca.password
+openssl rand -hex 16 -out ${DATADIR}/root-ca/user-ca.password
+
+# Create X.509 certificate templates for each of the provisioners
+cat >${DATADIR}/root-ca/templates/infra-ca.tpl <<EOF
+{
+	"subject": {
+		"organization": "Example Enterprises",
+		"commonName": "Example Enterprises Infrastructure Services CA"
+	},
+	"keyUsage": [ "certSign", "crlSign", "digitalSignature" ],
+	"basicConstraints": {
+		"isCA": true,
+		"maxPathLen": 1
+	}
+}
+EOF
+cat >${DATADIR}/root-ca/templates/user-ca.tpl <<EOF
+{
+	"subject": {
+		"organization": "Example Enterprises",
+		"commonName": "Example Enterprises User CA"
+	},
+	"keyUsage": [ "certSign", "crlSign", "digitalSignature" ],
+	"basicConstraints": {
+		"isCA": true,
+		"maxPathLen": 1
+	}
+}
+EOF
+docker compose "$@" exec -it root-ca step crypto jwk create infra-ca.pub.json infra-ca.priv.json --password-file=infra-ca.password
+docker compose "$@" exec -it root-ca step crypto jwk create user-ca.pub.json user-ca.priv.json --password-file=user-ca.password
+docker compose "$@" exec -it root-ca step ca provisioner add infra-ca --type JWK --public-key infra-ca.pub.json --private-key infra-ca.priv.json --password-file=infra-ca.password --x509-template ./templates/infra-ca.tpl
+docker compose "$@" exec -it root-ca step ca provisioner add user-ca --type JWK --public-key user-ca.pub.json --private-key user-ca.priv.json --password-file=user-ca.password --x509-template ./templates/user-ca.tpl
+docker compose "$@" kill -s HUP root-ca
 
 ## Initialise the infrastructure services CA
 
 # This CA will issue server certificates to the directory service and
 # Kerberos KDC. The former enables LDAPS connections, whilst the
-# latter allows PKINIT 
+# latter allows PKINIT
 
 mkdir -p ${DATADIR}/infra-ca
+cp ${DATADIR}/root-ca/infra-ca.password ${DATADIR}/infra-ca
 docker compose "$@" run \
 	-e DOCKER_STEPCA_INIT_NAME="${DS_REALM_ORGNAME} Infrastructure Services" \
 	-e DOCKER_STEPCA_INIT_DNS_NAMES="infra-ca" \
 	-e DOCKER_STEPCA_INIT_PROVISIONER_NAME=bootstrap \
 	-i infra-ca \
-	true
-INFRA_FINGERPRINT=$(openssl x509 -in ${DATADIR}/infra-ca/certs/root_ca.crt -outform der | openssl sha256)
-echo "${INFRA_FINGERPRINT}" > ${DATADIR}/tls/infra-ca.fingerprint
+	/bin/sh -xc "mkdir -p .step && \
+	cd / && \
+	STEP= CONFIGPATH= STEPPATH= step ca bootstrap --ca-url https://root-ca:9000 --fingerprint ${ROOT_FINGERPRINT} && \
+	cd .. && \
+	cp /home/step/.step/certs/root_ca.crt /home/step/certs/root_ca.crt && \
+	rm -f /home/step/secrets/root_ca_key && \
+	STEP= CONFIGPATH= STEPPATH= \
+		step ca certificate Infrastructure /home/step/certs/intermediate_ca.crt /home/step/secrets/intermediate_ca_key \
+			--password-file /home/step/secrets/password \
+			--provisioner infra-ca \
+			--provisioner-password-file /home/step/infra-ca.password \
+			--force"
+cat >${DATADIR}/infra-ca/config/defaults.json <<EOF
+{
+  "ca-url": "https://infra-ca:9000",
+  "fingerprint": "${ROOT_FINGERPRINT}",
+  "root": "/home/step/certs/root_ca.crt",
+  "redirect-url": ""
+}
+EOF
+cat >${DATADIR}/infra-ca/templates/ds.tpl <<EOF
+{
+	"subject": {
+		"organization": "Example Enterprises",
+		"commonName": "Directory Service"
+	},
+{{- if typeIs "*rsa.PublicKey" .Insecure.CR.PublicKey }}
+    "keyUsage": ["keyEncipherment", "digitalSignature"],
+{{- else }}
+    "keyUsage": ["digitalSignature"],
+{{- end }}
+	"extendedKeyUsage": [ "serverAuth", "clientAuth" ],
+	"dnsNames": [
+		"ds", "ds.EXAMPLE.COM"
+	]
+}
+EOF
+cat >${DATADIR}/infra-ca/templates/kdc.tpl <<EOF
+{
+	"subject": {
+		"organization": "Example Enterprises",
+		"commonName": "Kerberos KDC"
+	},
+{{- if typeIs "*rsa.PublicKey" .Insecure.CR.PublicKey }}
+    "keyUsage": ["keyEncipherment", "digitalSignature"],
+{{- else }}
+    "keyUsage": ["digitalSignature"],
+{{- end }}
+	"extendedKeyUsage": [ "serverAuth", "clientAuth" ],
+	"dnsNames": [
+		"kdc", "kdc.EXAMPLE.COM"
+	]
+}
+EOF
 cp ${DATADIR}/infra-ca/secrets/password ${DATADIR}/secrets/infra-ca.password
+openssl rand -hex 16 -out ${DATADIR}/infra-ca/ds.password
+openssl rand -hex 16 -out ${DATADIR}/infra-ca/kdc.password
 docker compose "$@" create infra-ca
 docker compose "$@" start infra-ca
+docker compose "$@" exec -it infra-ca step crypto jwk create ds.pub.json ds.priv.json --password-file=ds.password
+docker compose "$@" exec -it infra-ca step crypto jwk create kdc.pub.json kdc.priv.json --password-file=kdc.password
+docker compose "$@" exec -it infra-ca step ca provisioner add infra-ca --type JWK --public-key ds.pub.json --private-key ds.priv.json --password-file=ds.password --x509-template ./templates/ds.tpl
+docker compose "$@" exec -it infra-ca step ca provisioner add user-ca --type JWK --public-key kdc.pub.json --private-key kdc.priv.json --password-file=kdc.password --x509-template ./templates/kdc.tpl
+docker compose "$@" kill -s HUP infra-ca
 
 ## Initialise the user CA
 
 # This CA will issue certificates to user account-holders of the directory
 
 mkdir -p ${DATADIR}/user-ca
+cp ${DATADIR}/root-ca/user-ca.password ${DATADIR}/user-ca
 docker compose "$@" run \
 	-e DOCKER_STEPCA_INIT_NAME="${DS_REALM_ORGNAME} User" \
 	-e DOCKER_STEPCA_INIT_DNS_NAMES="user-ca" \
 	-e DOCKER_STEPCA_INIT_PROVISIONER_NAME=bootstrap \
 	-i user-ca \
-	true
-USER_FINGERPRINT=$(openssl x509 -in ${DATADIR}/infra-ca/certs/root_ca.crt -outform der | openssl sha256)
-USER_FINGERPRINT=$(docker compose "$@" run -it infra-ca step certificate fingerprint certs/root_ca.crt)
-echo "${USER_FINGERPRINT}" > ${DATADIR}/tls/user-ca.fingerprint
+	/bin/sh -xc "mkdir -p .step && \
+	cd / && \
+	STEP= CONFIGPATH= STEPPATH= step ca bootstrap --ca-url https://root-ca:9000 --fingerprint ${ROOT_FINGERPRINT} && \
+	cd .. && \
+	cp /home/step/.step/certs/root_ca.crt /home/step/certs/root_ca.crt && \
+	rm -f /home/step/secrets/root_ca_key && \
+	STEP= CONFIGPATH= STEPPATH= \
+		step ca certificate Infrastructure /home/step/certs/intermediate_ca.crt /home/step/secrets/intermediate_ca_key \
+			--password-file /home/step/secrets/password \
+			--provisioner user-ca \
+			--provisioner-password-file /home/step/user-ca.password \
+			--force"
+cat >${DATADIR}/user-ca/config/defaults.json <<EOF
+{
+  "ca-url": "https://user-ca:9000",
+  "fingerprint": "${ROOT_FINGERPRINT}",
+  "root": "/home/step/certs/root_ca.crt",
+  "redirect-url": ""
+}
+EOF
 cp ${DATADIR}/user-ca/secrets/password ${DATADIR}/secrets/user-ca.password
-
 docker compose "$@" create user-ca
 docker compose "$@" start user-ca
