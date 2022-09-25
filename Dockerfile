@@ -14,9 +14,34 @@ ONBUILD RUN apt-get update
 
 FROM smallstep/step-cli as step
 
-## Certificate Authority (CA) container
+## Offline Certificate Authority (CA) container
 
-FROM smallstep/step-ca AS ca
+FROM core AS offline-ca
+
+RUN apt-get install -qq openssl
+RUN mkdir -p /app/db /app/certs /app/requests /app/keys /app/private
+COPY dev/offline-ca/entrypoint /app/entrypoint
+VOLUME [ "/app/db", "/app/certs", "/app/requests", "/app/keys", "/app/private" ]
+ENTRYPOINT [ "/app/entrypoint" ]
+
+## Online Certificate Authority (CA) container
+
+FROM smallstep/step-ca AS online-ca
+
+# This script is used by inter-ca which only exists in the development
+# environment
+
+COPY dev/online-ca/adopt /usr/local/bin/
+
+## Keys/Secrets Manager container
+
+FROM vault AS kms
+
+FROM kms AS kms-init
+
+COPY dev/kms-init/bootstrap /
+
+ENTRYPOINT [ "/bootstrap" ]
 
 ## LDAP Directory Service (DS) container
 
@@ -58,7 +83,10 @@ RUN mv /var/lib/heimdal-kdc /var/lib/heimdal-kdc.dist && ln -sf /app/db/kdc /var
 ## Development container
 
 FROM kerberos AS dev
+COPY --from=vault /bin/vault /usr/local/bin
 RUN apt-get install -qq procps nano nslcd libnss-ldapd finger less libpam-krb5
+RUN mkdir -p /etc/ldap
+COPY dev/ldap.conf /etc/ldap/
 COPY dev/krb5.conf /etc/
 COPY dev/nslcd.conf /etc/
 COPY dev/nsswitch.conf /etc/

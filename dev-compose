@@ -1,0 +1,32 @@
+#! /bin/sh
+
+## Helper script for running Compose commands with the correct set of YAML
+## files for the default development environment
+
+## This script must be run from the top-level source directory
+
+infra_yaml="-f dev/infra.yaml"
+
+case "${IAM_DEV_LIGHT}" in
+	1|yes|true)
+		infra_yaml=""
+		;;
+esac
+
+mkdir -p dev/data
+touch dev/ds-step.env
+
+## dev/local.env is included for any environment overrides you want to
+## apply - it's excluded from git and touched here only to guarantee
+## that it exists
+
+touch dev/local.env
+
+set -x
+docker compose \
+	--project-name iamdev \
+	-f docker-compose.yaml \
+	${infra_yaml} \
+	-f dev/devenv.yaml \
+	-f dev/overrides.yaml \
+	"$@"

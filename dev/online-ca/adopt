@@ -1,0 +1,24 @@
+#! /bin/sh
+
+set -e
+
+if [ -r root_ca.crt ] ; then
+	rm -f certs/root_ca.crt secrets/root_ca_key
+	cp root_ca.crt certs/root_ca.crt
+fi
+if [ -r intermediate_ca.crt ] ; then
+	rm -f certs/intermediate_ca.crt secrets/intermediate_ca_key
+	cp intermediate_ca.crt certs/intermediate_ca.crt
+	# Use openssl ec to safely strip out the EC PARAMETERS section
+	cp intermediate_ca_key secrets/intermediate_ca_key
+fi
+fingerprint=$(step certificate fingerprint certs/root_ca.crt)
+printf "Updated root fingerprint: %s\n" "${fingerprint}"
+cat >config/defaults.json <<EOF
+{
+  "ca-url": "https://${DOCKER_STEPCA_INIT_DNS_NAMES}:9000",
+  "fingerprint": "${fingerprint}",
+  "root": "/home/step/certs/root_ca.crt",
+  "redirect-url": ""
+}
+EOF

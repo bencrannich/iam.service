@@ -25,6 +25,40 @@ IAM_USER_GID=${IAM_USER_GID:-5000}
 IAM_USER_HOME=${IAM_USER_HOME:-"/home/${IAM_USER_NAME}"}
 IAM_USER_SHELL=${IAM_USER_SHELL:-/bin/false}
 IAM_USER_GECOS=${IAM_USER_GECOS:-${IAM_USER_FULLNAME}}
+IAM_DS_HOSTNAME=${IAM_DS_HOSTNAME:-ds.${DS_REALM_DNS}}
+
+step_bootstrap() {
+	if [ -d $HOME/.step ] || [ -f $HOME/.step/config/defaults.json ] ; then
+		return 0
+	fi
+	if [ -z "$STEP_CA_URL" ] || [ -z "$STEP_CA_FINGERPRINT" ] ; then
+		return 0
+	fi
+	printf "%s: connecting to certificate authority %s\n" "${self}" "${STEP_CA_URL}" >&2
+	step ca bootstrap --ca-url ${STEP_CA_URL} --fingerprint ${STEP_CA_FINGERPRINT}
+}
+
+step_provision() {
+	if ! [ -d $HOME/.step ] || ! [ -f $HOME/.step/config/defaults.json ] ; then
+		return 0
+	fi
+	if [ -z "$STEP_CA_PROVISIONER" ] ; then
+		printf "%s: WARNING: Step is configured but STEP_CA_PROVISIONER is unset\n"
+		return 0
+	fi
+	mkdir -p /run/tls
+	chmod 711 /run/tls
+	cp $HOME/.step/certs/root_ca.crt /run/tls/root.pem
+	chmod 644 /run/tls/root.pem
+	# none of this is especially ideal
+	echo "$STEP_CA_PROVISIONER_PASSWORD" > /run/tls/provision-password
+	step ca certificate "ds" /run/tls/ds.crt.pem /run/tls/ds.key.pem \
+		--san "ds" --san "${IAM_DS_HOSTNAME}" \
+		--provisioner ${STEP_CA_PROVISIONER} \
+		--provisioner-password-file /run/tls/provision-password \
+		--force
+	chown openldap:openldap /run/tls/ds.*.pem
+}
 
 ds_is_running() {
 	DSPID=$(cat ${PIDFILE} 2>/dev/null)
@@ -42,7 +76,8 @@ ds_start()
 	chown -R ${OWNER} "${DBROOT}"
 	$DAEMON -F "${CFGPATH}" -n "${self}" -u ${USER} -g ${GROUP} "$@"
 	if ! ds_is_running ; then
-		printf "%s: failed to start Directory Service\n" "${self}" >&2
+		printf "%s: failed to start Directory Service, re-running in foreground:\n" "${self}" >&2
+		$DAEMON -F "${CFGPATH}" -n "${self}" -u ${USER} -g ${GROUP} "$@" -d 4
 		return 150
 	fi
 	return 0
@@ -124,8 +159,12 @@ ds_prepare()
 	if ! [ -d "${CFGPATH}" ] || ! [ -f "${CFGPATH}/cn=config.ldif" ] ; then
 		printf "%s: Initialising configuration database\n" "${self}" >&2
 		mkdir -p "${CFGPATH}" || return
-		slapadd -F "${CFGPATH}" -b "CN=Config" -l /app/share/templates/init/config.ldif || return
-
+		if [ -f /run/tls/ds.crt.pem ] ; then
+			LISTEN="ldaps:///"
+			slapadd -F "${CFGPATH}" -b "CN=Config" -l /app/share/templates/init/config.ldif || return
+		else
+			slapadd -F "${CFGPATH}" -b "CN=Config" -l /app/share/templates/init/config.notls.ldif || return
+		fi
 		for file in /app/share/schema/*.ldif ; do
 			printf "%s: Importing schema: %s\n" "${self}" "$file" >&2
 			slapadd -F "${CFGPATH}" -b "CN=Config" -l "$file" || return
@@ -155,6 +194,9 @@ ds_prepare()
 		fi
 	fi
 
+	## XXX we should initialise database config separately from the database itself,
+	## because the former may be freshly-built whilst the latter is expected to be
+	## long-term persistent
 	if [ "$ds_autoinit" = yes ] ; then
 		printf "%s: initialising database for realm <%s>\n" "${self}" "${DS_REALM_DN}" >&2
 		mkdir -p "${DBPATH}"
@@ -176,7 +218,6 @@ ds_prepare()
 		fi
 		printf "%s: realm <%s> successfully initialised\n" "${self}" "${DS_REALM_DN}" >&2
 	fi
-
 	if ! [ -f "${DBPATH}/DB_CONFIG" ] ; then
 		cat >"${DBPATH}/DB_CONFIG" <<EOF
 set lk_detect DB_LOCK_DEFAULT
@@ -266,11 +307,13 @@ stop)
 	ds_stop
 	;;
 ""|run)
+	step_bootstrap || exit
+	step_provision || exit
 	if ! ds_prepare ; then
 		printf "%s: preparation failed\n" "${self}" >&2
 		exit 160
 	fi
-	printf "%s: Starting Directory Service in foreground mode\n" "${self}" >&2
+	printf "%s: Starting Directory Service in foreground mode on %s\n" "${self}" "$LISTEN" >&2
 	if ! ds_start_full -d ${DS_DEBUG} ; then
 		exit 150
 	fi

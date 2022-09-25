@@ -1,0 +1,15 @@
+version: "3.3"
+services:
+  dev:
+    build:
+      target: dev
+    env_file:
+      ./dev/dev.env
+    volumes:
+      - slaprun:/var/run/slapd
+      - "./:/workspace:cached"
+      - home:/me
+    networks:
+      - iamnet
+volumes:
+  home:

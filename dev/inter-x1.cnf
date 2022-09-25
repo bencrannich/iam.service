@@ -1,0 +1,28 @@
+[req]
+prompt=no
+utf8=yes
+distinguished_name=inter_x1_dn
+
+[inter_x1_dn]
+CN=Example Enterprises Intermediate X1
+O=Example Enterprises
+
+[inter_x1_extensions]
+basicConstraints=critical,CA:true
+keyUsage=critical,keyCertSign,cRLSign,digitalSignature
+subjectKeyIdentifier=hash
+authorityKeyIdentifier=keyid:always,issuer:always
+#extendedKeyUsage=OCSPSigning
+#subjectAltName=DNS:inter-ca
+#authorityInfoAccess=OSCP;...
+#authorityInfoAccess=caIssuers;...
+#crlDistributionPoints=URI:
+#certificatePolicies=...
+
+[kms_extensions]
+basicConstraints=critical,CA:false
+keyUsage=critical,keyEncipherment,digitalSignature
+subjectKeyIdentifier=hash
+authorityKeyIdentifier=keyid:always,issuer:always
+extendedKeyUsage=serverAuth,clientAuth
+subjectAltName=DNS:kms,DNS:kms.EXAMPLE.COM

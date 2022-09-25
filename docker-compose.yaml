@@ -39,14 +39,19 @@ services:
       - slaprun:/var/run/slapd
     networks:
       - iamnet
+  prov-ca:
+    build:
+      target: online-ca
+    networks:
+      - iamnet
   infra-ca:
     build:
-      target: ca
+      target: online-ca
     networks:
       - iamnet
   user-ca:
     build:
-      target: ca
+      target: online-ca
     networks:
       - iamnet
 volumes:

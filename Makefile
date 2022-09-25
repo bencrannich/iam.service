@@ -7,68 +7,79 @@
 #
 # The password for the admin/admin principal can be found in devdb/kdc/admin-pw
 
-COMPOSEFLAGS = --project-name=iamdev -f docker-compose.yaml -f dev/dev.yaml
-
 build:
-	docker compose ${COMPOSEFLAGS} build
+	./dev-compose build
 
 up: build
-	dev/bootstrap-docker.sh ${COMPOSEFLAGS}
-	docker compose ${COMPOSEFLAGS} up
+	./dev-compose up
+
+start: build
+	./dev-compose up -V --wait
 
 down:
-	docker compose ${COMPOSEFLAGS} down --remove-orphans
+	./dev-compose down --remove-orphans
 
 clean: down
 	rm -rf dev/data devdb ds/testdb dump.ldif
 
 rebuild: clean
-	docker compose ${COMPOSEFLAGS} build 
-	dev/bootstrap-docker.sh ${COMPOSEFLAGS}
-	docker compose ${COMPOSEFLAGS} up -V --wait
+	./dev-compose build 
+	./dev-compose up -V --wait
 
-ds-logs:
-	docker compose ${COMPOSEFLAGS} logs ds -f
+lite: build
+	IAM_DEV_LIGHT=1 ./dev-compose up -V --wait --remove-orphans
 
-ds-dump:
-	docker compose ${COMPOSEFLAGS} exec -it ds /app/entrypoint dump > dump.ldif
+relite: clean build
+	IAM_DEV_LIGHT=1 ./dev-compose up -V --wait --remove-orphans
 
 logs:
-	docker compose ${COMPOSEFLAGS} logs -f
+	./dev-compose logs -f
+
+kms-logs:
+	./dev-compose logs kms -f
+
+ds-logs:
+	./dev-compose logs ds -f
+
+ds-dump:
+	./dev-compose exec -it ds /app/entrypoint dump > dump.ldif
 
 kdc-logs:
-	docker compose ${COMPOSEFLAGS} logs kdc -f
+	./dev-compose logs kdc -f
 
 dev-logs:
-	docker compose ${COMPOSEFLAGS} logs dev -f
+	./dev-compose logs dev -f
 
 kadmin-logs:
-	docker compose ${COMPOSEFLAGS} logs kadmin -f
+	./dev-compose logs kadmin -f
 
 root-ca-logs:
-	docker compose ${COMPOSEFLAGS} logs root-ca -f
+	./dev-compose logs root-ca -f
+
+kms-shell:
+	./dev-compose exec -it kms sh
 
 ds-shell:
-	docker compose ${COMPOSEFLAGS} exec -it ds bash
+	./dev-compose exec -it ds bash
 
 kdc-shell:
-	docker compose ${COMPOSEFLAGS} exec -it kdc bash
+	./dev-compose exec -it kdc bash
 
 kadmin-shell:
-	docker compose ${COMPOSEFLAGS} exec -it kadmin bash
+	./dev-compose exec -it kadmin bash
 
 dev-shell:
-	docker compose ${COMPOSEFLAGS} exec -it dev bash
+	./dev-compose exec -it dev bash
 
 root-ca-shell:
-	docker compose ${COMPOSEFLAGS} exec -it root-ca bash
+	./dev-compose exec -it root-ca bash
 
 infra-ca-shell:
-	docker compose ${COMPOSEFLAGS} exec -it infra-ca bash
+	./dev-compose exec -it infra-ca bash
 
 root-ca-health:
-	docker compose ${COMPOSEFLAGS} exec -e STEPDEBUG=1 -it root-ca step ca health
+	./dev-compose exec -e STEPDEBUG=1 -it root-ca step ca health
 
 dev-login:
-	docker compose ${COMPOSEFLAGS} exec -it dev /bin/login
+	./dev-compose exec -it dev /bin/login
 

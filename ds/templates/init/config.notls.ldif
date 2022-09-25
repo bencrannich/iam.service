@@ -11,11 +11,6 @@ olcPidFile: /run/slapd/slapd.pid
 olcArgsFile: /run/slapd/slapd.args
 olcLogLevel: none
 olcToolThreads: 1
-olcTLSCACertificateFile: /run/tls/root.pem
-olcTLSCertificateFile: /run/tls/ds.crt.pem
-olcTLSCertificateKeyFile: /run/tls/ds.key.pem
-#olcTLSCipherSuite: HIGH
-olcTLSVerifyClient: demand
 
 ## ------------------------------------------------------------------------- ##
 ## "Frontend" (global) database configuration - applies to all databases

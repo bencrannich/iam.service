@@ -1,0 +1,209 @@
+#! /bin/sh
+
+# This script implements a very quick and dirty offline CA
+#
+# The following volumes are used:
+#
+#   /app/db            Local state
+#   /app/certs         Issued certificates
+#   /app/keys          Public keys
+#   /app/private       Private keys
+#   /app/requests      Certificate requests
+
+set -e
+
+DB=/app/db
+CERTS=/app/certs
+PUBKEYS=/app/keys
+PRIVKEYS=/app/private
+REQUESTS=/app/requests
+
+# Influential environment variables:
+
+CA_NAME=${CA_NAME:-""}
+CA_DN=${CA_DN:-""}
+CA_TYPE=${CA_TYPE:-"root"}
+CA_KEYTYPE=${CA_KEYTYPE:-"rsa"}
+CA_RSA_BITS=${CA_RSA_BITS:-2048}
+CA_EC_CURVE=${CA_EC_CURVE:-"prime256v1"}
+CA_DIGEST=${CA_DIGEST:-"sha512"}
+CA_SERIAL=${CA_SERIAL}
+
+log()
+{
+	printf "%s: %s\n" "offline-ca" "$*" >&2
+}
+
+if [ -z "${CA_NAME}" ] ; then
+	printf "offline-ca: ERROR: CA_NAME must be set to use this image\n" >&2
+	exit 100
+fi
+
+log "initialising the '${CA_NAME}' certificate authority"
+
+if ! [ -f ${DB}/openssl.cnf ] ; then
+	log "generating /app/db/openssl.cnf does not exist, generating..."
+	cat >${DB}/openssl.cnf <<EOF
+[default]
+default_md=${CA_DIGEST}
+string_mask=utf8only
+
+[req]
+prompt=no
+utf8=yes
+distinguished_name=ca_dn
+x509_extensions=ca_extensions
+
+[ca_dn]
+CN=${CA_NAME}
+
+[ca_extensions]
+basicConstraints=critical,CA:true
+keyUsage=critical,keyCertSign,cRLSign
+subjectKeyIdentifier=hash
+#extendedKeyUsage=OCSPSigning
+#authorityKeyIdentifier=keyid:always,issuer:always
+#subjectAltName=DNS:root-ca
+#authorityInfoAccess=OSCP;...
+#authorityInfoAccess=caIssuers;...
+#crlDistributionPoints=URI:
+#certificatePolicies=...
+
+[default_extensions]
+basicConstraints=critical,CA:false
+keyUsage=critical,digitalSignature
+subjectKeyIdentifier=hash
+#extendedKeyUsage=OCSPSigning
+#authorityKeyIdentifier=keyid:always,issuer:always
+#subjectAltName=DNS:root-ca
+#authorityInfoAccess=OSCP;...
+#authorityInfoAccess=caIssuers;...
+#crlDistributionPoints=URI:
+#certificatePolicies=...
+EOF
+fi
+
+if [ -z "${CA_SERIAL}" ] ; then
+	if ! [ -f ${DB}/ca.serial ] ; then
+		openssl rand -out ${DB}/ca.serial -hex 16
+	fi
+	CA_SERIAL=$(cat ${DB}/ca.serial)
+fi
+
+if [ ! -f ${PRIVKEYS}/${CA_NAME}.key.pem ] ; then
+	case "$CA_KEYTYPE" in
+		rsa)
+			log "generating a ${CA_RSA_BITS} bit RSA keypair..."
+			openssl genrsa -out ${PRIVKEYS}/${CA_NAME}.key.pem ${CA_RSA_BITS}
+			;;
+		ec)
+			log "generating a ${CA_EC_CURVE} elliptic curve keypair..."
+			openssl ecparam -genkey -name ${CA_EC_CURVE} -out ${PRIVKEYS}/${CA_NAME}.key.pem
+			;;
+		*)
+			log "ERROR: unsupported CA_KEYTYPE '${CA_KEYTYPE}' (expected 'rsa' or 'ec')"
+			exit 110
+			;;
+	esac
+fi
+
+if [ ! -f ${PRIVKEYS}/${CA_NAME}.keyonly.pem ] ; then
+	case "$CA_KEYTYPE" in
+		rsa)
+			cp ${PRIVKEYS}/${CA_NAME}.key.pem ${PRIVKEYS}/${CA_NAME}.keyonly.pem
+			;;
+		ec)
+			openssl ec -in ${PRIVKEYS}/${CA_NAME}.key.pem -out ${PRIVKEYS}/${CA_NAME}.keyonly.pem
+			;;
+	esac
+fi
+
+## XXX export pubkey for reference
+
+## XXX check for expiry if the CA certificate is already present
+
+if ! [ -r ${CERTS}/${CA_NAME}.crt.pem ] ; then
+	case "${CA_TYPE}" in
+		root)
+			log "generating self-signed root certificate"
+			# Wrap the key in a self-signed certificate using the above configuration
+			openssl req -batch -config ${DB}/openssl.cnf -set_serial 0x${CA_SERIAL} -key ${PRIVKEYS}/${CA_NAME}.key.pem -new -x509 -out ${CERTS}/${CA_NAME}.crt.pem
+			;;
+		sub)
+			if ! [ -r ${REQUESTS}/${CA_NAME}.req.pem ] ; then
+				log "generating certificate request for submission to parent CA"
+				openssl req -batch -config ${DB}/openssl.cnf -key ${PRIVKEYS}/${CA_NAME}.key.pem -new -out ${REQUESTS}/${CA_NAME}.req.pem
+			fi
+			;;
+		*)
+			log "ERROR: unsupported CA_TYPE '${CA_TYPE}' (expected 'root' or 'sub')"
+			exit 111
+			;;
+	esac
+	if [ -r ${CERTS}/${CA_NAME}.crt.pem ] ; then
+		cp ${CERTS}/${CA_NAME}.crt.pem ${DB}/ca.crt.pem
+	fi
+fi
+
+if ! [ -r ${DB}/fingerprint ] && [ -r ${CERTS}/${CA_NAME}.crt.pem ] ; then
+	openssl x509 -in ${CERTS}/${CA_NAME}.crt.pem -outform der | openssl sha256 -out ${DB}/fingerprint
+fi
+
+if ! [ -r ${CERTS}/${CA_NAME}.fullchain.pem ] && [ -r ${CERTS}/${CA_NAME}.crt.pem ] ; then
+	cp ${CERTS}/${CA_NAME}.crt.pem ${CERTS}/${CA_NAME}.fullchain.pem
+fi
+
+if ! [ -r ${REQUESTS}/${CA_NAME}.req.pem ] && [ -r ${CERTS}/${CA_NAME}.crt.pem ] ; then
+	# Generate a CSR from the certificate for cross-signing
+	log "generating CSR for ${CA_NAME}"
+	openssl x509 -x509toreq -in ${CERTS}/${CA_NAME}.crt.pem -signkey ${PRIVKEYS}/${CA_NAME}.key.pem -out ${REQUESTS}/${CA_NAME}.req.pem
+fi
+
+## We have both a CA certificate and a private key, we can perform requests
+
+if [ -z "$1" ] ; then
+	exit 0
+fi
+
+case "$1" in
+	sign|issue)
+			if [ -z "$2" ] ; then
+				log "ERROR: no request specified to sign"
+				exit 101
+			fi
+			if ! [ -r "${REQUESTS}/$2.req.pem" ] ; then
+				log "ERROR: $2.req.pem does not exist"
+				exit 50
+			fi
+			profile="default"
+			if ! [ -z "$3" ] ; then
+				profile="$3"
+			fi
+			log "signing '$2' with ${CA_NAME} using profile '${profile}'"
+			if [ -r "${DB}/$2.serial" ] ; then
+				serial=$( cat ${DB}/$2.serial )
+				log "configured serial number for '$2' is '${serial}'"
+			else
+				serial=$( openssl rand -hex 16 )
+				log "generated serial number for '$2' is '${serial}'"
+			fi
+			openssl x509 \
+				-sha512 \
+				-req \
+				-extfile ${DB}/openssl.cnf \
+				-extensions ${profile}_extensions \
+				-set_serial 0x${serial} \
+				-CA ${CERTS}/${CA_NAME}.crt.pem \
+				-CAkey ${PRIVKEYS}/${CA_NAME}.key.pem \
+				-in ${REQUESTS}/$2.req.pem \
+				-out ${CERTS}/$2.${CA_NAME}.crt.pem
+			cat ${CERTS}/$2.${CA_NAME}.crt.pem ${CERTS}/${CA_NAME}.fullchain.pem > ${CERTS}/$2.${CA_NAME}.fullchain.pem
+			log "successfully signed $2 with ${CA_NAME}"
+			exit 0
+		;;
+	*)
+		log "unsupported command '$1' (expected 'sign')"
+		exit 101
+		;;
+esac
+

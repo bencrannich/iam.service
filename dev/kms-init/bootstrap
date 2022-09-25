@@ -1,0 +1,35 @@
+#! /bin/sh
+
+if [ -r /secrets/kms.txt ] ; then
+	exit 0
+fi
+
+while true ; do
+	vault status >/dev/null
+	status=$?
+	if [ $status -eq 0 ] ; then
+		exit 0
+	fi
+	if [ $status -eq 2 ] ; then
+		break
+	fi
+	sleep 1
+done
+
+set -e
+
+vault operator init > /secrets/kms.txt
+
+KMS_UNSEAL_KEY_1=$( grep -E '^Unseal Key 1:' /secrets/kms.txt | cut -c15- )
+KMS_UNSEAL_KEY_2=$( grep -E '^Unseal Key 2:' /secrets/kms.txt | cut -c15- )
+KMS_UNSEAL_KEY_3=$( grep -E '^Unseal Key 3:' /secrets/kms.txt | cut -c15- )
+KMS_ROOT_TOKEN=$( grep -E '^Initial Root Token: ' /secrets/kms.txt | cut -c21- )
+
+vault operator unseal "${KMS_UNSEAL_KEY_1}"
+vault operator unseal "${KMS_UNSEAL_KEY_2}"
+vault operator unseal "${KMS_UNSEAL_KEY_3}"
+vault login "${KMS_ROOT_TOKEN}"
+vault secrets enable -path=secret -version=2 kv
+vault secrets enable pki
+
+exit 0

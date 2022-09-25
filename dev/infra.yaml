@@ -1,0 +1,266 @@
+version: "3.3"
+services:
+  root-a1:
+    build:
+      target: offline-ca
+    volumes:
+      - "./dev/data/root-a1:/app/db"
+      - "./dev/root-a1.cnf:/app/db/openssl.cnf:ro"
+      - "./dev/data/tls:/app/certs"
+      - "./dev/data/tls:/app/requests"
+      - "./dev/data/tls:/app/keys"
+      - "./dev/data/secrets/root-a1:/app/private"
+    env_file:
+      - ./dev/dev.env
+      - ./dev/local.env
+    environment:
+      CA_NAME: root-a1
+      CA_TYPE: root
+      CA_KEYTYPE: rsa
+  root-b1:
+    build:
+      target: offline-ca
+    volumes:
+      - "./dev/data/root-b1:/app/db"
+      - "./dev/root-b1.cnf:/app/db/openssl.cnf:ro"
+      - "./dev/data/tls:/app/certs"
+      - "./dev/data/tls:/app/requests"
+      - "./dev/data/tls:/app/keys"
+      - "./dev/data/secrets/root-b1:/app/private"
+      - "./dev/data/root-a1/ca.serial:/app/db/root-a1.serial:ro"
+    env_file:
+      - ./dev/dev.env
+      - ./dev/local.env
+    environment:
+      CA_NAME: root-b1
+      CA_TYPE: root
+      CA_KEYTYPE: ec
+    depends_on:
+      root-a1:
+        condition: service_completed_successfully
+    command: [ "sign", "root-a1", "root_a1" ]
+  sign-b1:
+    build:
+      target: offline-ca
+    volumes:
+      - "./dev/data/root-a1:/app/db"
+      - "./dev/root-a1.cnf:/app/db/openssl.cnf:ro"
+      - "./dev/data/tls:/app/certs"
+      - "./dev/data/tls:/app/requests"
+      - "./dev/data/tls:/app/keys"
+      - "./dev/data/secrets/root-a1:/app/private"
+      - "./dev/data/root-b1/ca.serial:/app/db/root-b1.serial:ro"
+    env_file:
+      - ./dev/dev.env
+      - ./dev/local.env
+    environment:
+      CA_NAME: root-a1
+    depends_on:
+      root-a1:
+        condition: service_completed_successfully
+      root-b1:
+        condition: service_completed_successfully
+    command: [ "sign", "root-b1", "root_b1" ]
+  merge-roots:
+    build:
+      target: core
+    volumes:
+      - "./dev/data/tls:/certs"
+    command: [ "/bin/sh", "-c", "cd /certs && \
+cat root-a1.crt.pem root-b1.crt.pem > roots.crt.pem && \
+cat roots.crt.pem root-a1.root-b1.crt.pem root-b1.root-a1.crt.pem > roots.fullchain.pem" ]
+    depends_on:
+      sign-b1:
+        condition: service_completed_successfully
+  inter-x1:
+    build:
+      target: offline-ca
+    volumes:
+      - "./dev/data/inter-x1:/app/db"
+      - "./dev/inter-x1.cnf:/app/db/openssl.cnf:ro"
+      - "./dev/data/tls:/app/certs"
+      - "./dev/data/tls:/app/requests"
+      - "./dev/data/tls:/app/keys"
+      - "./dev/data/secrets/inter-x1:/app/private"
+    env_file:
+      - ./dev/dev.env
+      - ./dev/local.env
+    environment:
+      CA_NAME: inter-x1
+      CA_TYPE: sub
+      CA_KEYTYPE: ec
+  sign-x1-a1:
+    build:
+      target: offline-ca
+    volumes:
+      - "./dev/data/root-a1:/app/db"
+      - "./dev/root-a1.cnf:/app/db/openssl.cnf:ro"
+      - "./dev/data/tls:/app/certs"
+      - "./dev/data/tls:/app/requests"
+      - "./dev/data/tls:/app/keys"
+      - "./dev/data/secrets/root-a1:/app/private"
+      - "./dev/data/inter-x1/ca.serial:/app/db/inter-x1.serial:ro"
+    env_file:
+      - ./dev/dev.env
+      - ./dev/local.env
+    environment:
+      CA_NAME: root-a1
+    depends_on:
+      root-a1:
+        condition: service_completed_successfully
+      inter-x1:
+        condition: service_completed_successfully
+    command: [ "sign", "inter-x1", "inter_x1" ]
+  sign-x1-b1:
+    build:
+      target: offline-ca
+    volumes:
+      - "./dev/data/root-b1:/app/db"
+      - "./dev/root-b1.cnf:/app/db/openssl.cnf:ro"
+      - "./dev/data/tls:/app/certs"
+      - "./dev/data/tls:/app/requests"
+      - "./dev/data/tls:/app/keys"
+      - "./dev/data/secrets/root-b1:/app/private"
+      - "./dev/data/inter-x1/ca.serial:/app/db/inter-x1.serial:ro"
+    env_file:
+      - ./dev/dev.env
+      - ./dev/local.env
+    environment:
+      CA_NAME: root-b1
+    depends_on:
+      root-b1:
+        condition: service_completed_successfully
+      inter-x1:
+        condition: service_completed_successfully
+    command: [ "sign", "inter-x1", "inter_x1" ]
+  merge-x1:
+    build:
+      target: core
+    volumes:
+      - "./dev/data/tls:/certs"
+    command: [ "/bin/sh", "-c", "cd /certs && \
+    cat inter-x1.root-a1.crt.pem inter-x1.root-b1.crt.pem > inter-x1.crt.pem && \
+    cat root-a1.crt.pem root-b1.crt.pem inter-x1.crt.pem > inter-x1.fullchain.pem" ]
+    depends_on:
+      merge-roots:
+        condition: service_completed_successfully
+      sign-x1-a1:
+        condition: service_completed_successfully
+      sign-x1-b1:
+        condition: service_completed_successfully
+  kms-csr:
+    build:
+      target: offline-ca
+    entrypoint: ""
+    volumes:
+      - "./dev/data/secrets/kms:/keys"
+      - "./dev/data/tls:/requests"
+    command: [ "/bin/sh", "-c", "openssl ecparam -genkey -name prime256v1 -out /keys/kms.key.pem && \
+openssl req -new \
+  -key /keys/kms.key.pem \
+  -out /requests/kms.req.pem \
+  -subj '/CN=Key Management Service/O=Example Enterprises'" ]
+  kms-cert:
+    build:
+      target: offline-ca
+    volumes:
+      - "./dev/data/inter-x1:/app/db"
+      - "./dev/inter-x1.cnf:/app/db/openssl.cnf:ro"
+      - "./dev/data/tls:/app/certs"
+      - "./dev/data/tls:/app/requests"
+      - "./dev/data/tls:/app/keys"
+      - "./dev/data/secrets/inter-x1:/app/private"
+    env_file:
+      - ./dev/dev.env
+      - ./dev/local.env
+    depends_on:
+      kms-csr:
+        condition: service_completed_successfully
+      merge-x1:
+        condition: service_completed_successfully
+    environment:
+      CA_NAME: inter-x1
+    command: [ "sign", "kms", "kms" ]
+  kms:
+    build:
+      target: kms
+    cap_add:
+      - IPC_LOCK
+    volumes:
+      - "./dev/data/tls:/certs:ro"
+      - "./dev/data/secrets/kms:/keys:ro"
+#      - "./dev/data/secrets/vault:/vault/file"
+    environment:
+    environment:
+      VAULT_ADDR: https://kms
+      VAULT_CACERT: /certs/roots.fullchain.pem
+      VAULT_LOCAL_CONFIG: '{"backend": {"file": {"path": "/vault/file"}}, "default_lease_ttl": "168h", "max_lease_ttl": "720h", "listener":{"tcp":{"address":"0.0.0.0:443","tls_cert_file":"/certs/kms.inter-x1.fullchain.pem","tls_key_file":"/keys/kms.key.pem"}},"ui":true}'
+    command:
+      server
+    networks:
+      - iamnet
+    depends_on:
+      kms-cert:
+        condition: service_completed_successfully
+  kms-init:
+    build:
+      target:
+        kms-init
+    volumes:
+      - "./dev/data/tls:/certs:ro"
+      - "./dev/data/secrets/kms:/secrets"
+    environment:
+      VAULT_ADDR: https://kms
+      VAULT_CACERT: /certs/roots.fullchain.pem
+    networks:
+      - iamnet
+    depends_on:
+      kms:
+        condition: service_started
+  inter-ca:
+    build:
+      target: online-ca
+    networks:
+      - iamnet
+    env_file:
+      - ./dev/dev.env
+      - ./dev/local.env
+    volumes:
+      - "./dev/data/inter-ca:/home/step"
+      - "./dev/data/tls/root-a1.crt.pem:/home/step/root_ca.crt:ro"
+      - "./dev/data/secrets/inter-x1/inter-x1.keyonly.pem:/home/step/intermediate_ca_key:ro"
+      - "./dev/data/tls/inter-x1.root-a1.crt.pem:/home/step/intermediate_ca.crt:ro"
+    healthcheck:
+      interval: 5s
+    depends_on:
+      merge-x1:
+        condition: service_completed_successfully
+      kms-init:
+        condition: service_completed_successfully
+    environment:
+      DOCKER_STEPCA_INIT_NAME: Example Enterprises Intermediate X1
+      DOCKER_STEPCA_INIT_DNS_NAMES: inter-ca
+      DOCKER_STEPCA_INIT_PROVISIONER_NAME: bootstrap
+    tty: true
+    command: [ "/bin/sh", "-c", "/usr/local/bin/adopt && step-ca config/ca.json" ]
+  dev:
+    volumes:
+      - "./dev/data/tls:/certs:ro"
+    depends_on:
+      kms-init:
+        condition: service_completed_successfully
+  infra-ca:
+    depends_on:
+      inter-ca:
+        condition: service_healthy
+  prov-ca:
+    depends_on:
+      inter-ca:
+        condition: service_healthy
+  user-ca:
+    depends_on:
+      inter-ca:
+        condition: service_healthy
+#    depends_on:
+#      kms:
+#        condition: service_healthy
