@@ -9,7 +9,7 @@ services:
       - "./dev/data/tls:/app/certs"
       - "./dev/data/tls:/app/requests"
       - "./dev/data/tls:/app/keys"
-      - "./dev/data/secrets/root-a1:/app/private"
+      - "./dev/secrets/root-a1:/app/private"
     env_file:
       - ./dev/dev.env
       - ./dev/local.env
@@ -26,7 +26,7 @@ services:
       - "./dev/data/tls:/app/certs"
       - "./dev/data/tls:/app/requests"
       - "./dev/data/tls:/app/keys"
-      - "./dev/data/secrets/root-b1:/app/private"
+      - "./dev/secrets/root-b1:/app/private"
       - "./dev/data/root-a1/ca.serial:/app/db/root-a1.serial:ro"
     env_file:
       - ./dev/dev.env
@@ -48,7 +48,7 @@ services:
       - "./dev/data/tls:/app/certs"
       - "./dev/data/tls:/app/requests"
       - "./dev/data/tls:/app/keys"
-      - "./dev/data/secrets/root-a1:/app/private"
+      - "./dev/secrets/root-a1:/app/private"
       - "./dev/data/root-b1/ca.serial:/app/db/root-b1.serial:ro"
     env_file:
       - ./dev/dev.env

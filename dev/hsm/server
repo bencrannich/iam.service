@@ -38,4 +38,5 @@ fi
 log "starting server"
 
 #export P11_KIT_DEBUG=all 
+echo "$url" > /run/p11-kit/pkcs11.url
 p11-kit server -f --name /run/p11-kit/pkcs11.sock --provider /usr/lib/softhsm/libsofthsm2.so "$url"

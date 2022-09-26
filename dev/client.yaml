@@ -1,0 +1,30 @@
+version: "3.3"
+services:
+  client:
+    build:
+      target: client
+    env_file:
+      - ./dev/dev.env
+      - ./dev/local.env
+    volumes:
+# This should be removed once the connection to the LDAP server is always via
+# LDAPS
+      - slaprun:/var/run/slapd
+# This is a persistent volume for convenience
+      - home:/me
+# Make the source tree available at /workspace for convenience
+      - "./:/workspace:cached"
+    depends_on:
+      ds:
+        condition: service_started
+      kdc:
+        condition: service_started
+      kadmin:
+        condition: service_started
+    networks:
+      - iamnet
+# only needed for debugging via strace (or similar) within the container
+#    cap_add:
+#      - SYS_PTRACE
+volumes:
+  home:

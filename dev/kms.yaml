@@ -7,7 +7,7 @@ services:
       target: offline-ca
     entrypoint: ""
     volumes:
-      - "./dev/data/secrets/kms:/keys"
+      - "./dev/secrets/kms:/keys"
       - "./dev/data/tls:/requests"
     command: [ "/bin/sh", "-c", "openssl ecparam -genkey -name prime256v1 -out /keys/kms.key.pem && \
 openssl req -new \
@@ -23,7 +23,7 @@ openssl req -new \
       - "./dev/data/tls:/app/certs"
       - "./dev/data/tls:/app/requests"
       - "./dev/data/tls:/app/keys"
-      - "./dev/data/secrets/inter-x1:/app/private"
+      - "./dev/secrets/inter-x1:/app/private"
     env_file:
       - ./dev/dev.env
       - ./dev/local.env
@@ -42,9 +42,8 @@ openssl req -new \
       - IPC_LOCK
     volumes:
       - "./dev/data/tls:/certs:ro"
-      - "./dev/data/secrets/kms:/keys:ro"
-#      - "./dev/data/secrets/vault:/vault/file"
-    environment:
+      - "./dev/secrets/kms:/keys:ro"
+      - "./dev/secrets/vault:/vault/file"
     environment:
       VAULT_ADDR: https://kms
       VAULT_CACERT: /certs/roots.fullchain.pem
@@ -62,7 +61,7 @@ openssl req -new \
         kms-init
     volumes:
       - "./dev/data/tls:/certs:ro"
-      - "./dev/data/secrets/kms:/secrets"
+      - "./dev/secrets/kms:/secrets"
     environment:
       VAULT_ADDR: https://kms
       VAULT_CACERT: /certs/roots.fullchain.pem
@@ -71,7 +70,34 @@ openssl req -new \
     depends_on:
       kms:
         condition: service_started
-  dev:
+  prov-ca:
+    environment:
+      VAULT_ADDR: https://kms
+      VAULT_CACERT: /certs/roots.fullchain.pem
+    volumes:
+      - "./dev/data/tls:/certs:ro"
+    depends_on:
+      kms:
+        condition: service_healthy
+  infra-ca:
+    environment:
+      VAULT_ADDR: https://kms
+      VAULT_CACERT: /certs/roots.fullchain.pem
+    volumes:
+      - "./dev/data/tls:/certs:ro"
+    depends_on:
+      kms:
+        condition: service_healthy
+  user-ca:
+    environment:
+      VAULT_ADDR: https://kms
+      VAULT_CACERT: /certs/roots.fullchain.pem
+    volumes:
+      - "./dev/data/tls:/certs:ro"
+    depends_on:
+      kms:
+        condition: service_healthy
+  ds:
     environment:
       VAULT_ADDR: https://kms
       VAULT_CACERT: /certs/roots.fullchain.pem
@@ -80,3 +106,38 @@ openssl req -new \
     depends_on:
       kms-init:
         condition: service_completed_successfully
+      kms:
+        condition: service_healthy
+  kdc:
+    environment:
+      VAULT_ADDR: https://kms
+      VAULT_CACERT: /certs/roots.fullchain.pem
+    volumes:
+      - "./dev/data/tls:/certs:ro"
+    depends_on:
+      kms-init:
+        condition: service_completed_successfully
+      kms:
+        condition: service_healthy
+  kadmin:
+    environment:
+      VAULT_ADDR: https://kms
+      VAULT_CACERT: /certs/roots.fullchain.pem
+    volumes:
+      - "./dev/data/tls:/certs:ro"
+    depends_on:
+      kms-init:
+        condition: service_completed_successfully
+      kms:
+        condition: service_healthy
+  client:
+    environment:
+      VAULT_ADDR: https://kms
+      VAULT_CACERT: /certs/roots.fullchain.pem
+    volumes:
+      - "./dev/data/tls:/certs:ro"
+    depends_on:
+      kms-init:
+        condition: service_completed_successfully
+      kms:
+        condition: service_healthy

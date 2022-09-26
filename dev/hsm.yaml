@@ -14,7 +14,7 @@ services:
       - ./dev/local.env
     volumes:
       - pkcs11-a1:/run/p11-kit
-      - "./dev/data/secrets/hsm/a1:/var/lib/softhsm/tokens"
+      - "./dev/secrets/hsm/a1:/var/lib/softhsm/tokens"
   hsm-b1:
     build:
       target: hsm
@@ -24,7 +24,7 @@ services:
       - ./dev/local.env
     volumes:
       - pkcs11-b1:/run/p11-kit
-      - "./dev/data/secrets/hsm/b1:/var/lib/softhsm/tokens"
+      - "./dev/secrets/hsm/b1:/var/lib/softhsm/tokens"
   hsm-x1:
     build:
       target: hsm
@@ -34,7 +34,7 @@ services:
       - ./dev/local.env
     volumes:
       - pkcs11-x1:/run/p11-kit
-      - "./dev/data/secrets/hsm/x1:/var/lib/softhsm/tokens"
+      - "./dev/secrets/hsm/x1:/var/lib/softhsm/tokens"
   hsm-user:
     build:
       target: hsm
@@ -44,7 +44,7 @@ services:
       - ./dev/local.env
     volumes:
       - pkcs11-user:/run/p11-kit
-      - "./dev/data/secrets/hsm/user:/var/lib/softhsm/tokens"
+      - "./dev/secrets/hsm/user:/var/lib/softhsm/tokens"
   root-a1:
     depends_on:
       hsm-a1:
@@ -101,8 +101,7 @@ services:
       - pkcs11-x1:/run/p11-kit
     env_file:
       - ./dev/token-x1.env
-
-  dev:
+  client:
     depends_on:
       hsm-user:
         condition: service_started

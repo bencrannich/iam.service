@@ -11,26 +11,29 @@ build:
 	./dev-compose build
 
 up: build
-	./dev-compose up
+	./dev-compose up client
 
 start: build
-	./dev-compose up -V --wait
+	./dev-compose up -V --wait client
 
 down:
 	./dev-compose down --remove-orphans
 
 clean: down
-	rm -rf dev/data devdb ds/testdb dump.ldif
+	rm -rf dev/data devdb ds/testdb dump.ldif dev/ds-step.env
+
+fullclean: clean
+	rm -rf dev/secrets
 
 rebuild: clean
 	./dev-compose build 
-	./dev-compose up -V --wait
+	./dev-compose up -V --wait client
 
 lite: build
-	IAM_DEV_LIGHT=1 ./dev-compose up -V --wait --remove-orphans
+	IAM_DEV_LIGHT=1 ./dev-compose up -V --wait --remove-orphans kadmin
 
 relite: clean build
-	IAM_DEV_LIGHT=1 ./dev-compose up -V --wait --remove-orphans
+	IAM_DEV_LIGHT=1 ./dev-compose up -V --wait --remove-orphans kadmin
 
 logs:
 	./dev-compose logs -f
@@ -47,8 +50,10 @@ ds-dump:
 kdc-logs:
 	./dev-compose logs kdc -f
 
-dev-logs:
-	./dev-compose logs dev -f
+dev-logs: client-logs
+
+client-logs:
+	./dev-compose logs client -f
 
 kadmin-logs:
 	./dev-compose logs kadmin -f
@@ -71,8 +76,10 @@ kdc-shell:
 kadmin-shell:
 	./dev-compose exec -it kadmin bash
 
-dev-shell:
-	./dev-compose exec -it dev bash
+dev-shell: client-shell
+
+client-shell:
+	./dev-compose exec -it client bash
 
 root-ca-shell:
 	./dev-compose exec -it root-ca bash
@@ -83,6 +90,8 @@ infra-ca-shell:
 root-ca-health:
 	./dev-compose exec -e STEPDEBUG=1 -it root-ca step ca health
 
-dev-login:
-	./dev-compose exec -it dev /bin/login
+dev-login: client-login
+
+client-login:
+	./dev-compose exec -it client /bin/login
 

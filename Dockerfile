@@ -51,12 +51,18 @@ COPY dev/online-ca/adopt /usr/local/bin/
 ## Keys/Secrets Manager container
 
 FROM vault AS kms
+RUN mkdir -p /app
+COPY dev/kms/healthcheck /app/healthcheck
+RUN chmod +x /app/healthcheck
+HEALTHCHECK --interval=5s --timeout=2s --start-period=5s --retries=5 CMD [ "/app/healthcheck" ]
 
 FROM kms AS kms-init
 
-COPY dev/kms-init/bootstrap /
-
-ENTRYPOINT [ "/bootstrap" ]
+RUN mkdir -p /app
+COPY dev/kms-init/bootstrap /app/bootstrap
+RUN chmod +x /app/bootstrap
+HEALTHCHECK NONE
+ENTRYPOINT [ "/app/bootstrap" ]
 
 ## LDAP Directory Service (DS) container
 
@@ -95,21 +101,26 @@ COPY kdc/services /etc/services
 COPY kdc/common.sh /app/lib
 RUN mv /var/lib/heimdal-kdc /var/lib/heimdal-kdc.dist && ln -sf /app/db/kdc /var/lib/heimdal-kdc
 
-## Development container
+## Development client container
 
-FROM kerberos AS dev
+FROM kerberos AS client
 COPY --from=vault /bin/vault /usr/local/bin
 RUN apt-get install -qq procps nano nslcd libnss-ldapd finger less libpam-krb5 gnutls-bin p11-kit strace libengine-pkcs11-openssl
 RUN mkdir -p /etc/ldap
-COPY dev/ldap.conf /etc/ldap/
-COPY dev/krb5.conf /etc/
-COPY dev/nslcd.conf /etc/
-COPY dev/nsswitch.conf /etc/
+COPY dev/client/ldap.conf /etc/ldap/
+COPY dev/client/krb5.conf /etc/
+COPY dev/client/nslcd.conf /etc/
+COPY dev/client/nsswitch.conf /etc/
 RUN mkdir /me
+# This matches the default initial UID and GID of the initial user in the
+# directory, but will need to be changed if you change them in dev.env or
+# local.env
+RUN chown 5000:5000 /me
 RUN mkdir -p /etc/pkcs11/modules && echo "module: /usr/lib/$(uname -m)-linux-gnu/pkcs11/p11-kit-client.so" > /etc/pkcs11/modules/p11-kit-client.module
 
 VOLUME [ "/me" ]
 ENTRYPOINT [ "/bin/sh", "-c" ]
+HEALTHCHECK --interval=1s --timeout=30s --start-period=5s --retries=3 CMD [ "/bin/true" ]
 CMD [ "/usr/sbin/nslcd --debug" ]
 
 ## Kerberos Key Distribution Center (KDC) container

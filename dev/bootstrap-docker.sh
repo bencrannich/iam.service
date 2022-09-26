@@ -1,4 +1,5 @@
-#! /bin/sh
+XXXX This is script is no longer used and will be deleted
+
 
 set -e
 

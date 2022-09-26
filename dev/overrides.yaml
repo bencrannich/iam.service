@@ -57,13 +57,13 @@ services:
       IAM_KADMINDIR: /app/kadmin-data
       IAM_SECRETSDIR: /app/secrets
     volumes:
-      - "./dev/data/secrets:/app/secrets"
+      - "./dev/secrets/kdc:/app/secrets"
       - "./dev/data/kdc:/app/db"
-      - "./dev/data/kadmin:/app/kadmin-data"
+      - "./dev/secrets/kadmin:/app/kadmin-data"
     domainname: EXAMPLE.COM
   kadmin:
     env_file:
       ./dev/dev.env
     volumes:
-      - "./dev/data/kadmin:/app/db"
+      - "./dev/secrets/kadmin:/app/db"
     domainname: EXAMPLE.COM

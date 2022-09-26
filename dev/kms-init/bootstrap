@@ -1,24 +1,37 @@
 #! /bin/sh
 
-if [ -r /secrets/kms.txt ] ; then
-	exit 0
-fi
+# This script is used to bootstrap a Vault instance (VAULT_ADDR should be set
+# in the environment), or unseal one if we previously bootstrapped it but
+# it's sealed (e.g., been rebooted).
+#
+# This all happens in the extremely sophisticated fashion of storing a copy
+# of $(vault operator init) in /secrets/kms.txt, which should be a persistent
+# volume of some sort
+#
+# Obviously this is not how you should do things in production, ever.
 
 while true ; do
-	vault status >/dev/null
+	vault status >/dev/null 2>&1
 	status=$?
 	if [ $status -eq 0 ] ; then
+		# Vault is unsealed, nothing to do
 		exit 0
 	fi
 	if [ $status -eq 2 ] ; then
+		# Vault is sealed, unseal below
 		break
 	fi
+	# unable to determine status (or status is unrecognised)
 	sleep 1
 done
 
 set -e
 
-vault operator init > /secrets/kms.txt
+init=no
+if ! [ -r /secrets/kms.txt ] ; then
+	init=yes
+	vault operator init > /secrets/kms.txt
+fi
 
 KMS_UNSEAL_KEY_1=$( grep -E '^Unseal Key 1:' /secrets/kms.txt | cut -c15- )
 KMS_UNSEAL_KEY_2=$( grep -E '^Unseal Key 2:' /secrets/kms.txt | cut -c15- )
@@ -29,7 +42,11 @@ vault operator unseal "${KMS_UNSEAL_KEY_1}"
 vault operator unseal "${KMS_UNSEAL_KEY_2}"
 vault operator unseal "${KMS_UNSEAL_KEY_3}"
 vault login "${KMS_ROOT_TOKEN}"
-vault secrets enable -path=secret -version=2 kv
-vault secrets enable pki
+
+# Perform one-time setup of the instance
+
+if [ "${init}" = "yes" ] ; then
+	vault secrets enable -path=secret -version=2 kv
+fi
 
 exit 0

@@ -1,0 +1,20 @@
+#! /bin/sh
+
+vault status
+status=$?
+case "$status" in
+	0)
+		echo "OK"
+		exit 0
+		;;
+	1)
+		echo "Error"
+		;;
+	2)
+		echo "Sealed"
+		;;
+	*)
+		echo "Unknown status ($status)"
+		;;
+esac
+exit $status

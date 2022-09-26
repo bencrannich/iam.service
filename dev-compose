@@ -5,13 +5,46 @@
 
 ## This script must be run from the top-level source directory
 
-infra_yaml="-f dev/hsm.yaml -f dev/root-ca.yaml -f dev/inter-ca.yaml -f dev/kms.yaml"
+## To use this script, simply invoke it as you would "docker compose", e.g.:
+#
+# ./dev-compose logs -f
+#
+# All configurable parameters are passed via environment variables (see below),
+# and any arguments you specify are passed directly to Compose
 
-case "${IAM_DEV_LIGHT}" in
-	1|yes|true)
-		infra_yaml=""
-		;;
-esac
+## Variables you can set:
+#
+# Variable          Default value       Type      Description
+#
+# COMPOSE           docker compose      String    Compose command name
+# IAM_DEV_NAME      iamdev              String    Compose project name
+# IAM_DEV_LIGHT     NO                  Boolean   Start a minimal stack
+# IAM_DEV_CLIENT    YES                 Boolean   Include the "client" container
+
+COMPOSE=${COMPOSE:-'docker compose'}
+IAM_DEV_NAME=${IAM_DEV_NAME:-'iamdev'}
+IAM_DEV_LIGHT=${IAM_DEV_LIGHT:-NO}
+
+infra_yaml="-f dev/hsm.yaml -f dev/root-ca.yaml -f dev/inter-ca.yaml -f dev/kms.yaml"
+client_yaml=""
+
+is_true() {
+	case "$1" in
+		1|YES|yes|true)
+			return 0
+			;;
+	esac
+	return 1
+}
+
+if is_true "${IAM_DEV_LIGHT}" ; then
+	IAM_DEV_CLIENT=${IAM_DEV_CLIENT:-NO}
+	infra_yaml=""
+fi
+
+IAM_DEV_CLIENT=${IAM_DEV_CLIENT:-YES}
+
+is_true "${IAM_DEV_CLIENT}" && client_yaml="-f dev/client.yaml"
 
 mkdir -p dev/data
 touch dev/ds-step.env
@@ -20,13 +53,32 @@ touch dev/ds-step.env
 ## apply - it's excluded from git and touched here only to guarantee
 ## that it exists
 
-touch dev/local.env
+if ! [ -r dev/local.env ] ; then
+	cat >dev/local.env <<EOF
+# Use this file to apply any local environment variable overrides that
+# should be passed to all containers
+#IAM_USER_NAME=sam
+#IAM_USER_FULLNAME=Sam Polenska
+EOF
+fi
+
+if ! [ -r dev/local.yaml ] ; then
+	cat >dev/local.yaml <<EOF
+# This file is passed automatically to Compose when a development environment
+# is used (e.g., via the top-level Makefile), but it is excluded from Git and any
+# changes you make will not be overwritten. It is included last on the
+# command-line, so you can use it to override any service or resource
+# definitions (or add new ones)
+version: "3.3"
+EOF
+fi
 
 set -x
-docker compose \
-	--project-name iamdev \
+${COMPOSE} \
+	--project-name "${IAM_DEV_NAME}" \
 	-f docker-compose.yaml \
 	${infra_yaml} \
-	-f dev/devenv.yaml \
+	${client_yaml} \
 	-f dev/overrides.yaml \
+	-f dev/local.yaml \
 	"$@"

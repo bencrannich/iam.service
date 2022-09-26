@@ -31,7 +31,7 @@ CA_SERIAL=${CA_SERIAL}
 
 log()
 {
-	printf "%s: %s\n" "offline-ca" "$*" >&2
+	printf "%s: %s\n" "${CA_NAME}" "$*" >&2
 }
 
 if [ -z "${CA_NAME}" ] ; then
@@ -43,19 +43,21 @@ log "initialising the '${CA_NAME}' certificate authority"
 #unset P11_KIT_SERVER_ADDRESS
 
 if ! [ -z "${P11_KIT_SERVER_ADDRESS}" ] ; then
+	log "Attempting to initialise PKCS#11 interface..."
 	PKCS11_URL="$(p11tool --list-token-urls --provider /usr/lib/$(uname -m)-linux-gnu/pkcs11/p11-kit-client.so)"
 	if [ -z "$PKCS11_URL" ] ; then
-		log "ERROR: unable to find token"
-		exit 10
+		if [ -r "/run/p11-kit/pkcs11.url" ] ; then
+			PKCS11_URL=$(cat /run/p11-kit/pkcs11.url)
+		else
+			log "ERROR: PKCS11_URL is unset and /run/p11-kit/pkcs11.url does not exist"
+			exit 10
+		fi
 	fi
 	if [ -z "$GNUTLS_PIN" ] ; then
 		log "ERROR: GNUTLS_PIN is not set"
 		exit 11
 	fi
 	log "using PKCS#11 token '${PKCS11_URL}'"
-#	p11tool --provider /usr/lib/$(uname -m)-linux-gnu/pkcs11/p11-kit-client.so --list-tokens
-#	p11tool --list-tokens
-#	exit 10
 fi
 
 if ! [ -f ${DB}/openssl.cnf ] ; then
@@ -107,35 +109,52 @@ if [ -z "${CA_SERIAL}" ] ; then
 	CA_SERIAL=$(cat ${DB}/ca.serial)
 fi
 
-if ! [ -f ${PRIVKEYS}/${CA_NAME}.key.pem ] ; then
-	case "$CA_KEYTYPE" in
-		rsa)
-			if ! [ -z "${P11_KIT_SERVER_ADDRESS}" ] ; then
-				if ! [ -r "${PUBKEYS}/${CA_NAME}.pub.pem" ] ; then
-					log "generating a ${CA_RSA_BITS} bit RSA keypair via PKCS#11..."
-					p11tool --generate-privkey=rsa --mark-private --bits=${CA_RSA_BITS} --outfile=${PUBKEYS}/${CA_NAME}.pub.pem "${PKCS11_URL}" --login --label "${CA_NAME}"
-				fi
-			else
+if ! [ -z "$PKCS11_URL" ] ; then
+	KEYFORM="engine"
+	log "checking for private keys"
+	PRIVKEY_URL="$(p11tool --list-all-privkeys --login --only-urls "${PKCS11_URL}" | grep "object=${CA_NAME};")"
+	if [ -z "${PRIVKEY_URL}" ] ; then
+		log "NOTICE: no private key found for CA"
+		case "$CA_KEYTYPE" in
+			rsa)
+				log "generating a ${CA_RSA_BITS} bit RSA keypair via PKCS#11..."
+				p11tool --generate-privkey=rsa --mark-private --bits=${CA_RSA_BITS} --outfile=${PUBKEYS}/${CA_NAME}.pub.pem "${PKCS11_URL}" --login --label "${CA_NAME}"
+				;;
+			ec)
+				log "generating a ${CA_EC_CURVE} elliptic curve keypair via PKCS#11..."
+				p11tool --generate-privkey=ecc --mark-private --outfile=${PUBKEYS}/${CA_NAME}.pub.pem "${PKCS11_URL}" --login --label "${CA_NAME}"
+				;;
+			*)
+				log "ERROR: unsupported CA_KEYTYPE '${CA_KEYTYPE}' (expected 'rsa' or 'ec')"
+				exit 110
+				;;
+		esac
+		PRIVKEY_URL="$(p11tool --list-all-privkeys --login "${PKCS11_URL}" | grep "URL: " | grep "=${CA_NAME};" | cut -c7- | head -1)"
+		if [ -z "${PRIVKEY_URL}" ] ; then
+			log "ERROR: unable to locate private key after generation"
+			exit 112
+		fi
+	fi
+	log "using private key ${PRIVKEY_URL}"
+else
+	KEYFORM="pem"
+	if ! [ -f ${PRIVKEYS}/${CA_NAME}.key.pem ] ; then
+		case "$CA_KEYTYPE" in
+			rsa)
 				log "generating a ${CA_RSA_BITS} bit RSA keypair..."
 				openssl genrsa -out ${PRIVKEYS}/${CA_NAME}.key.pem ${CA_RSA_BITS}
-			fi
-			;;
-		ec)
-			if ! [ -z "${P11_KIT_SERVER_ADDRESS}" ] ; then
-				if ! [ -r "${PUBKEYS}/${CA_NAME}.pub.pem" ] ; then
-					log "generating a ${CA_EC_CURVE} elliptic curve keypair via PKCS#11..."
-					p11tool --generate-privkey=ecc --mark-private --outfile=${PUBKEYS}/${CA_NAME}.pub.pem "${PKCS11_URL}" --login --label "${CA_NAME}"
-				fi
-			else
+				;;
+			ec)
 				log "generating a ${CA_EC_CURVE} elliptic curve keypair..."
 				openssl ecparam -genkey -name ${CA_EC_CURVE} -out ${PRIVKEYS}/${CA_NAME}.key.pem
-			fi
-			;;
-		*)
-			log "ERROR: unsupported CA_KEYTYPE '${CA_KEYTYPE}' (expected 'rsa' or 'ec')"
-			exit 110
-			;;
-	esac
+				;;
+			*)
+				log "ERROR: unsupported CA_KEYTYPE '${CA_KEYTYPE}' (expected 'rsa' or 'ec')"
+				exit 110
+				;;
+		esac
+	fi
+	log "using private key ${PRIVKEYS}/${CA_NAME}.key.pem"
 fi
 
 if [ ! -f ${PRIVKEYS}/${CA_NAME}.keyonly.pem ] && [ -f ${PRIVKEYS}/${CA_NAME}.key.pem ]; then
@@ -154,14 +173,11 @@ fi
 ## XXX check for expiry if the CA certificate is already present
 
 privkey=${PRIVKEYS}/${CA_NAME}.key.pem
-keyopts=""
-cakeyopts=""
-engineopts=""
-if ! [ -z "${P11_KIT_SERVER_ADDRESS}" ] ; then
-	privkey="$(p11tool --list-all "${PKCS11_URL}" | grep "URL: " | grep "=${CA_NAME};" | cut -c7-);pin-value=${GNUTLS_PIN}"
-	keyopts="-keyform engine"
-	cakeyopts="-CAkeyform engine"
-	engineopts="-engine pkcs11"
+keyopts="-keyform ${KEYFORM}"
+cakeyopts="-CAkeyform ${KEYFORM}"
+engineopts="-engine pkcs11"
+if ! [ -z "${PRIVKEY_URL}" ] ; then
+	privkey="${PRIVKEY_URL};pin-value=${GNUTLS_PIN}"
 fi
 
 if ! [ -r ${CERTS}/${CA_NAME}.crt.pem ] ; then
@@ -201,9 +217,24 @@ if ! [ -r ${REQUESTS}/${CA_NAME}.req.pem ] && [ -r ${CERTS}/${CA_NAME}.crt.pem ]
 	openssl x509 ${engineopts} -x509toreq -in ${CERTS}/${CA_NAME}.crt.pem -signkey "${privkey}" ${keyopts} -out ${REQUESTS}/${CA_NAME}.req.pem
 fi
 
+if [ -r "${CERTS}/${CA_NAME}.crt.pem" ] && ! [ -z "${PKCS11_URL}" ] ; then
+	CERT_URL="$(p11tool --list-all-certs --login --only-urls "${PKCS11_URL}" | grep "object=${CA_NAME};" | head -1)"
+	if [ -z "${CERT_URL}" ] ; then
+		log "installing certificate to HSM"
+		p11tool --load-certificate ${CERTS}/${CA_NAME}.crt.pem --write --label=${CA_NAME} --login --mark-ca "${PKCS11_URL}"
+		CERT_URL="$(p11tool --list-all-certs --login --only-urls "${PKCS11_URL}" | grep "object=${CA_NAME};" | head -1)"
+		if [ -z "${CERT_URL}" ] ; then
+			log "ERROR: unable to locate public certificate after writing to security module"
+			exit 113
+		fi
+	fi
+	log "CA certificate is '${CERT_URL}'"
+fi
+
 ## We have both a CA certificate and a private key, we can perform requests
 
 if [ -z "$1" ] ; then
+	log "initialisation completed successfully"
 	exit 0
 fi
 
