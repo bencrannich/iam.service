@@ -11,5 +11,7 @@ services:
       - home:/me
     networks:
       - iamnet
+    cap_add:
+      - SYS_PTRACE
 volumes:
   home:

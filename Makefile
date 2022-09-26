@@ -56,6 +56,9 @@ kadmin-logs:
 root-ca-logs:
 	./dev-compose logs root-ca -f
 
+hsm-shell:
+	./dev-compose exec -it hsm bash
+
 kms-shell:
 	./dev-compose exec -it kms sh
 

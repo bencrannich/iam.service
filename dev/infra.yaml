@@ -1,9 +1,20 @@
 version: "3.3"
 services:
+  hsm:
+    build:
+      target: hsm
+    env_file:
+      - ./dev/dev.env
+      - ./dev/token.env
+      - ./dev/local.env
+    volumes:
+      - pkcs11:/run/p11-kit
+      - "./dev/data/secrets/hsm:/var/lib/softhsm/tokens"
   root-a1:
     build:
       target: offline-ca
     volumes:
+      - pkcs11:/run/p11-kit
       - "./dev/data/root-a1:/app/db"
       - "./dev/root-a1.cnf:/app/db/openssl.cnf:ro"
       - "./dev/data/tls:/app/certs"
@@ -12,15 +23,20 @@ services:
       - "./dev/data/secrets/root-a1:/app/private"
     env_file:
       - ./dev/dev.env
+      - ./dev/token.env
       - ./dev/local.env
     environment:
       CA_NAME: root-a1
       CA_TYPE: root
       CA_KEYTYPE: rsa
+    depends_on:
+      hsm:
+        condition: service_started
   root-b1:
     build:
       target: offline-ca
     volumes:
+      - pkcs11:/run/p11-kit
       - "./dev/data/root-b1:/app/db"
       - "./dev/root-b1.cnf:/app/db/openssl.cnf:ro"
       - "./dev/data/tls:/app/certs"
@@ -30,12 +46,15 @@ services:
       - "./dev/data/root-a1/ca.serial:/app/db/root-a1.serial:ro"
     env_file:
       - ./dev/dev.env
+      - ./dev/token.env
       - ./dev/local.env
     environment:
       CA_NAME: root-b1
       CA_TYPE: root
       CA_KEYTYPE: ec
     depends_on:
+      hsm:
+        condition: service_started
       root-a1:
         condition: service_completed_successfully
     command: [ "sign", "root-a1", "root_a1" ]
@@ -43,6 +62,7 @@ services:
     build:
       target: offline-ca
     volumes:
+      - pkcs11:/run/p11-kit
       - "./dev/data/root-a1:/app/db"
       - "./dev/root-a1.cnf:/app/db/openssl.cnf:ro"
       - "./dev/data/tls:/app/certs"
@@ -52,6 +72,7 @@ services:
       - "./dev/data/root-b1/ca.serial:/app/db/root-b1.serial:ro"
     env_file:
       - ./dev/dev.env
+      - ./dev/token.env
       - ./dev/local.env
     environment:
       CA_NAME: root-a1
@@ -76,6 +97,7 @@ cat roots.crt.pem root-a1.root-b1.crt.pem root-b1.root-a1.crt.pem > roots.fullch
     build:
       target: offline-ca
     volumes:
+      - pkcs11:/run/p11-kit
       - "./dev/data/inter-x1:/app/db"
       - "./dev/inter-x1.cnf:/app/db/openssl.cnf:ro"
       - "./dev/data/tls:/app/certs"
@@ -93,6 +115,7 @@ cat roots.crt.pem root-a1.root-b1.crt.pem root-b1.root-a1.crt.pem > roots.fullch
     build:
       target: offline-ca
     volumes:
+      - pkcs11:/run/p11-kit
       - "./dev/data/root-a1:/app/db"
       - "./dev/root-a1.cnf:/app/db/openssl.cnf:ro"
       - "./dev/data/tls:/app/certs"
@@ -102,6 +125,7 @@ cat roots.crt.pem root-a1.root-b1.crt.pem root-b1.root-a1.crt.pem > roots.fullch
       - "./dev/data/inter-x1/ca.serial:/app/db/inter-x1.serial:ro"
     env_file:
       - ./dev/dev.env
+      - ./dev/token.env
       - ./dev/local.env
     environment:
       CA_NAME: root-a1
@@ -115,6 +139,7 @@ cat roots.crt.pem root-a1.root-b1.crt.pem root-b1.root-a1.crt.pem > roots.fullch
     build:
       target: offline-ca
     volumes:
+      - pkcs11:/run/p11-kit
       - "./dev/data/root-b1:/app/db"
       - "./dev/root-b1.cnf:/app/db/openssl.cnf:ro"
       - "./dev/data/tls:/app/certs"
@@ -124,6 +149,7 @@ cat roots.crt.pem root-a1.root-b1.crt.pem root-b1.root-a1.crt.pem > roots.fullch
       - "./dev/data/inter-x1/ca.serial:/app/db/inter-x1.serial:ro"
     env_file:
       - ./dev/dev.env
+      - ./dev/token.env
       - ./dev/local.env
     environment:
       CA_NAME: root-b1
@@ -244,9 +270,16 @@ openssl req -new \
     tty: true
     command: [ "/bin/sh", "-c", "/usr/local/bin/adopt && step-ca config/ca.json" ]
   dev:
+    environment:
+      VAULT_ADDR: https://kms
+      VAULT_CACERT: /certs/roots.fullchain.pem
+      P11_KIT_SERVER_ADDRESS: unix:path=/run/p11-kit/pkcs11.sock
     volumes:
       - "./dev/data/tls:/certs:ro"
+      - pkcs11:/run/p11-kit
     depends_on:
+      hsm:
+        condition: service_started
       kms-init:
         condition: service_completed_successfully
   infra-ca:
@@ -264,3 +297,5 @@ openssl req -new \
 #    depends_on:
 #      kms:
 #        condition: service_healthy
+volumes:
+  pkcs11:

@@ -1,0 +1,40 @@
+#! /bin/sh
+
+set -e
+
+log()
+{
+	printf "%s: %s\n" "HSM" "$*" >&2
+}
+
+GNUTLS_SO_PIN=${GNUTLS_SO_PIN:-88888888}
+GNUTLS_PIN=${GNUTLS_PIN:-00000000}
+
+found=no
+for token in /var/lib/softhsm/tokens/* ; do
+	if [ -d "$token" ] && [ -f "$token/generation" ] ; then
+		found=yes
+		break
+	fi
+done
+
+if [ "${found}" = "no" ] ; then
+	log "no tokens found, initialising new SoftHSM"
+	softhsm2-util --init-token \
+		--free \
+		--label "HSM" \
+		--so-pin ${GNUTLS_SO_PIN} \
+		--pin ${GNUTLS_PIN}
+	log "token initialised"
+fi
+
+url="$(p11tool --list-token-urls --provider /usr/lib/softhsm/libsofthsm2.so | head -1)"
+if [ -z "$url" ] ; then
+	log "ERROR: unable to find token"
+	exit 10
+fi
+
+log "starting server"
+
+#export P11_KIT_DEBUG=all 
+p11-kit server -f --name /run/p11-kit/pkcs11.sock --provider /usr/lib/softhsm/libsofthsm2.so "$url"

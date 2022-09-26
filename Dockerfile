@@ -14,15 +14,25 @@ ONBUILD RUN apt-get update
 
 FROM smallstep/step-cli as step
 
+## SoftHSM server
+
+FROM core AS hsm
+
+RUN apt-get install -qq gnutls-bin p11-kit softhsm 
+
+COPY dev/hsm/server /server
+ENTRYPOINT [ "/server" ]
+VOLUME [ "/run/p11-kit", "/var/lib/softhsm/tokens" ]
 ## Offline Certificate Authority (CA) container
 
 FROM core AS offline-ca
 
-RUN apt-get install -qq openssl
+RUN apt-get install -qq openssl gnutls-bin p11-kit libengine-pkcs11-openssl
 RUN mkdir -p /app/db /app/certs /app/requests /app/keys /app/private
 COPY dev/offline-ca/entrypoint /app/entrypoint
 VOLUME [ "/app/db", "/app/certs", "/app/requests", "/app/keys", "/app/private" ]
 ENTRYPOINT [ "/app/entrypoint" ]
+RUN mkdir -p /etc/pkcs11/modules && echo "module: /usr/lib/$(uname -m)-linux-gnu/pkcs11/p11-kit-client.so" > /etc/pkcs11/modules/p11-kit-client.module
 
 ## Online Certificate Authority (CA) container
 
@@ -84,13 +94,15 @@ RUN mv /var/lib/heimdal-kdc /var/lib/heimdal-kdc.dist && ln -sf /app/db/kdc /var
 
 FROM kerberos AS dev
 COPY --from=vault /bin/vault /usr/local/bin
-RUN apt-get install -qq procps nano nslcd libnss-ldapd finger less libpam-krb5
+RUN apt-get install -qq procps nano nslcd libnss-ldapd finger less libpam-krb5 gnutls-bin p11-kit strace libengine-pkcs11-openssl
 RUN mkdir -p /etc/ldap
 COPY dev/ldap.conf /etc/ldap/
 COPY dev/krb5.conf /etc/
 COPY dev/nslcd.conf /etc/
 COPY dev/nsswitch.conf /etc/
 RUN mkdir /me
+RUN mkdir -p /etc/pkcs11/modules && echo "module: /usr/lib/$(uname -m)-linux-gnu/pkcs11/p11-kit-client.so" > /etc/pkcs11/modules/p11-kit-client.module
+
 VOLUME [ "/me" ]
 ENTRYPOINT [ "/bin/sh", "-c" ]
 CMD [ "/usr/sbin/nslcd --debug" ]
