@@ -1,0 +1,7 @@
+#! /bin/sh
+
+if test -S /run/p11-kit/pkcs11.sock ; then
+	exit 0
+fi
+exit 1
+

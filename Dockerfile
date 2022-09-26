@@ -20,9 +20,14 @@ FROM core AS hsm
 
 RUN apt-get install -qq gnutls-bin p11-kit softhsm 
 
-COPY dev/hsm/server /server
-ENTRYPOINT [ "/server" ]
+RUN mkdir /app
+COPY dev/hsm/server /app/server
+COPY dev/hsm/healthcheck /app/healthcheck
+RUN chmod +x /app/server /app/healthcheck
+ENTRYPOINT [ "/app/server" ]
 VOLUME [ "/run/p11-kit", "/var/lib/softhsm/tokens" ]
+HEALTHCHECK --interval=5s --timeout=10s --start-period=2s --retries=3 CMD [ "/app/healthcheck" ]
+
 ## Offline Certificate Authority (CA) container
 
 FROM core AS offline-ca

@@ -1,0 +1,117 @@
+# This file defines a set of services which provide emulated hardware
+# security modules (HSMs) via a Unix socket which is created on the
+# pkcs11-* volumes referenced in each service definition. The contents
+# of each service's /var/lib/softhsm/tokens mount are the secrets
+# accessed by clients via PKCS#11
+version: "3.3"
+services:
+  hsm-a1:
+    build:
+      target: hsm
+    env_file:
+      - ./dev/dev.env
+      - ./dev/token-a1.env
+      - ./dev/local.env
+    volumes:
+      - pkcs11-a1:/run/p11-kit
+      - "./dev/data/secrets/hsm/a1:/var/lib/softhsm/tokens"
+  hsm-b1:
+    build:
+      target: hsm
+    env_file:
+      - ./dev/dev.env
+      - ./dev/token-b1.env
+      - ./dev/local.env
+    volumes:
+      - pkcs11-b1:/run/p11-kit
+      - "./dev/data/secrets/hsm/b1:/var/lib/softhsm/tokens"
+  hsm-x1:
+    build:
+      target: hsm
+    env_file:
+      - ./dev/dev.env
+      - ./dev/token-x1.env
+      - ./dev/local.env
+    volumes:
+      - pkcs11-x1:/run/p11-kit
+      - "./dev/data/secrets/hsm/x1:/var/lib/softhsm/tokens"
+  hsm-user:
+    build:
+      target: hsm
+    env_file:
+      - ./dev/dev.env
+      - ./dev/token-user.env
+      - ./dev/local.env
+    volumes:
+      - pkcs11-user:/run/p11-kit
+      - "./dev/data/secrets/hsm/user:/var/lib/softhsm/tokens"
+  root-a1:
+    depends_on:
+      hsm-a1:
+        condition: service_healthy
+    volumes:
+      - pkcs11-a1:/run/p11-kit
+    env_file:
+      - ./dev/token-a1.env
+  root-b1:
+    depends_on:
+      hsm-b1:
+        condition: service_healthy
+    volumes:
+      - pkcs11-b1:/run/p11-kit
+    env_file:
+      - ./dev/token-b1.env
+  sign-b1:
+    depends_on:
+      hsm-a1:
+        condition: service_healthy
+    volumes:
+      - pkcs11-a1:/run/p11-kit
+    env_file:
+      - ./dev/token-a1.env
+  inter-x1:
+    depends_on:
+      hsm-x1:
+        condition: service_healthy
+    volumes:
+      - pkcs11-x1:/run/p11-kit
+    env_file:
+      - ./dev/token-x1.env
+  sign-x1-a1:
+    depends_on:
+      hsm-a1:
+        condition: service_healthy
+    volumes:
+      - pkcs11-a1:/run/p11-kit
+    env_file:
+      - ./dev/token-a1.env
+  sign-x1-b1:
+    depends_on:
+      hsm-b1:
+        condition: service_healthy
+    volumes:
+      - pkcs11-b1:/run/p11-kit
+    env_file:
+      - ./dev/token-b1.env
+  kms-cert:
+    depends_on:
+      hsm-x1:
+        condition: service_healthy
+    volumes:
+      - pkcs11-x1:/run/p11-kit
+    env_file:
+      - ./dev/token-x1.env
+
+  dev:
+    depends_on:
+      hsm-user:
+        condition: service_started
+    volumes:
+      - pkcs11-user:/run/p11-kit
+    env_file:
+      - ./dev/token-user.env
+volumes:
+  pkcs11-a1:
+  pkcs11-b1:
+  pkcs11-x1:
+  pkcs11-user:

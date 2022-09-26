@@ -1,8 +1,12 @@
+# This file overrides the services defined in the top-level docker-compose.yaml
+# when running an "iamdev" development stack (as orchestrated by the top-level
+# Makefile)
 version: "3.3"
 services:
   prov-ca:
     env_file:
-      ./dev/dev.env
+      - ./dev/dev.env
+      - ./dev/local.env
     volumes:
       - "./dev/data/prov-ca:/home/step"
     healthcheck:
@@ -13,7 +17,8 @@ services:
       DOCKER_STEPCA_INIT_PROVISIONER_NAME: bootstrap
   infra-ca:
     env_file:
-      ./dev/dev.env
+      - ./dev/dev.env
+      - ./dev/local.env
     volumes:
       - "./dev/data/infra-ca:/home/step"
     healthcheck:
@@ -24,7 +29,8 @@ services:
       DOCKER_STEPCA_INIT_PROVISIONER_NAME: bootstrap
   user-ca:
     env_file:
-      ./dev/dev.env
+      - ./dev/dev.env
+      - ./dev/local.env
     volumes:
       - "./dev/data/user-ca:/home/step"
     healthcheck:
@@ -37,6 +43,7 @@ services:
     env_file:
       - ./dev/dev.env
       - ./dev/ds-step.env
+      - ./dev/local.env
     volumes:
       - "./dev/data/tls:/app/tls"
       - "./dev/data/ds:/app/db"

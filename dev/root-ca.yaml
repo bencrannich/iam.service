@@ -1,0 +1,74 @@
+version: "3.3"
+services:
+  root-a1:
+    build:
+      target: offline-ca
+    volumes:
+      - "./dev/data/root-a1:/app/db"
+      - "./dev/root-a1.cnf:/app/db/openssl.cnf:ro"
+      - "./dev/data/tls:/app/certs"
+      - "./dev/data/tls:/app/requests"
+      - "./dev/data/tls:/app/keys"
+      - "./dev/data/secrets/root-a1:/app/private"
+    env_file:
+      - ./dev/dev.env
+      - ./dev/local.env
+    environment:
+      CA_NAME: root-a1
+      CA_TYPE: root
+      CA_KEYTYPE: rsa
+  root-b1:
+    build:
+      target: offline-ca
+    volumes:
+      - "./dev/data/root-b1:/app/db"
+      - "./dev/root-b1.cnf:/app/db/openssl.cnf:ro"
+      - "./dev/data/tls:/app/certs"
+      - "./dev/data/tls:/app/requests"
+      - "./dev/data/tls:/app/keys"
+      - "./dev/data/secrets/root-b1:/app/private"
+      - "./dev/data/root-a1/ca.serial:/app/db/root-a1.serial:ro"
+    env_file:
+      - ./dev/dev.env
+      - ./dev/local.env
+    environment:
+      CA_NAME: root-b1
+      CA_TYPE: root
+      CA_KEYTYPE: ec
+    depends_on:
+      root-a1:
+        condition: service_completed_successfully
+    command: [ "sign", "root-a1", "root_a1" ]
+  sign-b1:
+    build:
+      target: offline-ca
+    volumes:
+      - "./dev/data/root-a1:/app/db"
+      - "./dev/root-a1.cnf:/app/db/openssl.cnf:ro"
+      - "./dev/data/tls:/app/certs"
+      - "./dev/data/tls:/app/requests"
+      - "./dev/data/tls:/app/keys"
+      - "./dev/data/secrets/root-a1:/app/private"
+      - "./dev/data/root-b1/ca.serial:/app/db/root-b1.serial:ro"
+    env_file:
+      - ./dev/dev.env
+      - ./dev/local.env
+    environment:
+      CA_NAME: root-a1
+    depends_on:
+      root-a1:
+        condition: service_completed_successfully
+      root-b1:
+        condition: service_completed_successfully
+    command: [ "sign", "root-b1", "root_b1" ]
+  merge-roots:
+    build:
+      target: core
+    volumes:
+      - "./dev/data/tls:/certs"
+    command: [ "/bin/sh", "-c", "cd /certs && \
+cat root-a1.crt.pem root-b1.crt.pem > roots.crt.pem && \
+cat roots.crt.pem root-a1.root-b1.crt.pem root-b1.root-a1.crt.pem > roots.fullchain.pem" ]
+    depends_on:
+      sign-b1:
+        condition: service_completed_successfully

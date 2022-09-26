@@ -1,0 +1,82 @@
+# Set up an instance of Hashicorp Vault, issuing it a server certificate
+# directly from the Intermediate X1 CA (see kms-cert)
+version: "3.3"
+services:
+  kms-csr:
+    build:
+      target: offline-ca
+    entrypoint: ""
+    volumes:
+      - "./dev/data/secrets/kms:/keys"
+      - "./dev/data/tls:/requests"
+    command: [ "/bin/sh", "-c", "openssl ecparam -genkey -name prime256v1 -out /keys/kms.key.pem && \
+openssl req -new \
+  -key /keys/kms.key.pem \
+  -out /requests/kms.req.pem \
+  -subj '/CN=Key Management Service/O=Example Enterprises'" ]
+  kms-cert:
+    build:
+      target: offline-ca
+    volumes:
+      - "./dev/data/inter-x1:/app/db"
+      - "./dev/inter-x1.cnf:/app/db/openssl.cnf:ro"
+      - "./dev/data/tls:/app/certs"
+      - "./dev/data/tls:/app/requests"
+      - "./dev/data/tls:/app/keys"
+      - "./dev/data/secrets/inter-x1:/app/private"
+    env_file:
+      - ./dev/dev.env
+      - ./dev/local.env
+    depends_on:
+      kms-csr:
+        condition: service_completed_successfully
+      merge-x1:
+        condition: service_completed_successfully
+    environment:
+      CA_NAME: inter-x1
+    command: [ "sign", "kms", "kms" ]
+  kms:
+    build:
+      target: kms
+    cap_add:
+      - IPC_LOCK
+    volumes:
+      - "./dev/data/tls:/certs:ro"
+      - "./dev/data/secrets/kms:/keys:ro"
+#      - "./dev/data/secrets/vault:/vault/file"
+    environment:
+    environment:
+      VAULT_ADDR: https://kms
+      VAULT_CACERT: /certs/roots.fullchain.pem
+      VAULT_LOCAL_CONFIG: '{"backend": {"file": {"path": "/vault/file"}}, "default_lease_ttl": "168h", "max_lease_ttl": "720h", "listener":{"tcp":{"address":"0.0.0.0:443","tls_cert_file":"/certs/kms.inter-x1.fullchain.pem","tls_key_file":"/keys/kms.key.pem"}},"ui":true}'
+    command:
+      server
+    networks:
+      - iamnet
+    depends_on:
+      kms-cert:
+        condition: service_completed_successfully
+  kms-init:
+    build:
+      target:
+        kms-init
+    volumes:
+      - "./dev/data/tls:/certs:ro"
+      - "./dev/data/secrets/kms:/secrets"
+    environment:
+      VAULT_ADDR: https://kms
+      VAULT_CACERT: /certs/roots.fullchain.pem
+    networks:
+      - iamnet
+    depends_on:
+      kms:
+        condition: service_started
+  dev:
+    environment:
+      VAULT_ADDR: https://kms
+      VAULT_CACERT: /certs/roots.fullchain.pem
+    volumes:
+      - "./dev/data/tls:/certs:ro"
+    depends_on:
+      kms-init:
+        condition: service_completed_successfully

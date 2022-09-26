@@ -1,0 +1,93 @@
+version: "3.3"
+services:
+  inter-x1:
+    build:
+      target: offline-ca
+    volumes:
+      - "./dev/data/inter-x1:/app/db"
+      - "./dev/inter-x1.cnf:/app/db/openssl.cnf:ro"
+      - "./dev/data/tls:/app/certs"
+      - "./dev/data/tls:/app/requests"
+      - "./dev/data/tls:/app/keys"
+      - "./dev/data/secrets/inter-x1:/app/private"
+    env_file:
+      - ./dev/dev.env
+      - ./dev/local.env
+    environment:
+      CA_NAME: inter-x1
+      CA_TYPE: sub
+      CA_KEYTYPE: ec
+  sign-x1-a1:
+    build:
+      target: offline-ca
+    volumes:
+      - "./dev/data/root-a1:/app/db"
+      - "./dev/root-a1.cnf:/app/db/openssl.cnf:ro"
+      - "./dev/data/tls:/app/certs"
+      - "./dev/data/tls:/app/requests"
+      - "./dev/data/tls:/app/keys"
+      - "./dev/data/secrets/root-a1:/app/private"
+      - "./dev/data/inter-x1/ca.serial:/app/db/inter-x1.serial:ro"
+    env_file:
+      - ./dev/dev.env
+      - ./dev/local.env
+    environment:
+      CA_NAME: root-a1
+    depends_on:
+      root-a1:
+        condition: service_completed_successfully
+      inter-x1:
+        condition: service_completed_successfully
+    command: [ "sign", "inter-x1", "inter_x1" ]
+  sign-x1-b1:
+    build:
+      target: offline-ca
+    volumes:
+      - "./dev/data/root-b1:/app/db"
+      - "./dev/root-b1.cnf:/app/db/openssl.cnf:ro"
+      - "./dev/data/tls:/app/certs"
+      - "./dev/data/tls:/app/requests"
+      - "./dev/data/tls:/app/keys"
+      - "./dev/data/secrets/root-b1:/app/private"
+      - "./dev/data/inter-x1/ca.serial:/app/db/inter-x1.serial:ro"
+    env_file:
+      - ./dev/dev.env
+      - ./dev/local.env
+    environment:
+      CA_NAME: root-b1
+    depends_on:
+      root-b1:
+        condition: service_completed_successfully
+      inter-x1:
+        condition: service_completed_successfully
+    command: [ "sign", "inter-x1", "inter_x1" ]
+  merge-x1:
+    build:
+      target: core
+    volumes:
+      - "./dev/data/tls:/certs"
+    command: [ "/bin/sh", "-c", "cd /certs && \
+    cat inter-x1.root-a1.crt.pem inter-x1.root-b1.crt.pem > inter-x1.crt.pem && \
+    cat root-a1.crt.pem root-b1.crt.pem inter-x1.crt.pem > inter-x1.fullchain.pem" ]
+    depends_on:
+      merge-roots:
+        condition: service_completed_successfully
+      sign-x1-a1:
+        condition: service_completed_successfully
+      sign-x1-b1:
+        condition: service_completed_successfully
+#  infra-ca:
+#    depends_on:
+#      inter-ca:
+#        condition: service_healthy
+#  prov-ca:
+#    depends_on:
+#      inter-ca:
+#        condition: service_healthy
+#  user-ca:
+#    depends_on:
+#      inter-ca:
+#        condition: service_healthy
+#    depends_on:
+#      kms:
+#        condition: service_healthy
