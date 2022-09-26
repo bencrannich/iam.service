@@ -1,20 +1,50 @@
 version: "3.3"
 services:
-  hsm:
+  hsm-a1:
     build:
       target: hsm
     env_file:
       - ./dev/dev.env
-      - ./dev/token.env
+      - ./dev/token-a1.env
       - ./dev/local.env
     volumes:
-      - pkcs11:/run/p11-kit
-      - "./dev/data/secrets/hsm:/var/lib/softhsm/tokens"
+      - pkcs11-a1:/run/p11-kit
+      - "./dev/data/secrets/hsm/a1:/var/lib/softhsm/tokens"
+  hsm-b1:
+    build:
+      target: hsm
+    env_file:
+      - ./dev/dev.env
+      - ./dev/token-b1.env
+      - ./dev/local.env
+    volumes:
+      - pkcs11-b1:/run/p11-kit
+      - "./dev/data/secrets/hsm/b1:/var/lib/softhsm/tokens"
+  hsm-x1:
+    build:
+      target: hsm
+    env_file:
+      - ./dev/dev.env
+      - ./dev/token-x1.env
+      - ./dev/local.env
+    volumes:
+      - pkcs11-x1:/run/p11-kit
+      - "./dev/data/secrets/hsm/x1:/var/lib/softhsm/tokens"
+  hsm-user:
+    build:
+      target: hsm
+    env_file:
+      - ./dev/dev.env
+      - ./dev/token-user.env
+      - ./dev/local.env
+    volumes:
+      - pkcs11-user:/run/p11-kit
+      - "./dev/data/secrets/hsm/user:/var/lib/softhsm/tokens"
   root-a1:
     build:
       target: offline-ca
     volumes:
-      - pkcs11:/run/p11-kit
+      - pkcs11-a1:/run/p11-kit
       - "./dev/data/root-a1:/app/db"
       - "./dev/root-a1.cnf:/app/db/openssl.cnf:ro"
       - "./dev/data/tls:/app/certs"
@@ -23,20 +53,20 @@ services:
       - "./dev/data/secrets/root-a1:/app/private"
     env_file:
       - ./dev/dev.env
-      - ./dev/token.env
+      - ./dev/token-a1.env
       - ./dev/local.env
     environment:
       CA_NAME: root-a1
       CA_TYPE: root
       CA_KEYTYPE: rsa
     depends_on:
-      hsm:
+      hsm-a1:
         condition: service_started
   root-b1:
     build:
       target: offline-ca
     volumes:
-      - pkcs11:/run/p11-kit
+      - pkcs11-b1:/run/p11-kit
       - "./dev/data/root-b1:/app/db"
       - "./dev/root-b1.cnf:/app/db/openssl.cnf:ro"
       - "./dev/data/tls:/app/certs"
@@ -46,14 +76,14 @@ services:
       - "./dev/data/root-a1/ca.serial:/app/db/root-a1.serial:ro"
     env_file:
       - ./dev/dev.env
-      - ./dev/token.env
+      - ./dev/token-b1.env
       - ./dev/local.env
     environment:
       CA_NAME: root-b1
       CA_TYPE: root
       CA_KEYTYPE: ec
     depends_on:
-      hsm:
+      hsm-b1:
         condition: service_started
       root-a1:
         condition: service_completed_successfully
@@ -62,7 +92,7 @@ services:
     build:
       target: offline-ca
     volumes:
-      - pkcs11:/run/p11-kit
+      - pkcs11-a1:/run/p11-kit
       - "./dev/data/root-a1:/app/db"
       - "./dev/root-a1.cnf:/app/db/openssl.cnf:ro"
       - "./dev/data/tls:/app/certs"
@@ -72,11 +102,13 @@ services:
       - "./dev/data/root-b1/ca.serial:/app/db/root-b1.serial:ro"
     env_file:
       - ./dev/dev.env
-      - ./dev/token.env
+      - ./dev/token-a1.env
       - ./dev/local.env
     environment:
       CA_NAME: root-a1
     depends_on:
+      hsm-a1:
+        condition: service_started
       root-a1:
         condition: service_completed_successfully
       root-b1:
@@ -97,7 +129,7 @@ cat roots.crt.pem root-a1.root-b1.crt.pem root-b1.root-a1.crt.pem > roots.fullch
     build:
       target: offline-ca
     volumes:
-      - pkcs11:/run/p11-kit
+      - pkcs11-x1:/run/p11-kit
       - "./dev/data/inter-x1:/app/db"
       - "./dev/inter-x1.cnf:/app/db/openssl.cnf:ro"
       - "./dev/data/tls:/app/certs"
@@ -106,6 +138,7 @@ cat roots.crt.pem root-a1.root-b1.crt.pem root-b1.root-a1.crt.pem > roots.fullch
       - "./dev/data/secrets/inter-x1:/app/private"
     env_file:
       - ./dev/dev.env
+      - ./dev/token-x1.env
       - ./dev/local.env
     environment:
       CA_NAME: inter-x1
@@ -115,7 +148,7 @@ cat roots.crt.pem root-a1.root-b1.crt.pem root-b1.root-a1.crt.pem > roots.fullch
     build:
       target: offline-ca
     volumes:
-      - pkcs11:/run/p11-kit
+      - pkcs11-a1:/run/p11-kit
       - "./dev/data/root-a1:/app/db"
       - "./dev/root-a1.cnf:/app/db/openssl.cnf:ro"
       - "./dev/data/tls:/app/certs"
@@ -125,11 +158,13 @@ cat roots.crt.pem root-a1.root-b1.crt.pem root-b1.root-a1.crt.pem > roots.fullch
       - "./dev/data/inter-x1/ca.serial:/app/db/inter-x1.serial:ro"
     env_file:
       - ./dev/dev.env
-      - ./dev/token.env
+      - ./dev/token-a1.env
       - ./dev/local.env
     environment:
       CA_NAME: root-a1
     depends_on:
+      hsm-a1:
+        condition: service_started
       root-a1:
         condition: service_completed_successfully
       inter-x1:
@@ -139,7 +174,7 @@ cat roots.crt.pem root-a1.root-b1.crt.pem root-b1.root-a1.crt.pem > roots.fullch
     build:
       target: offline-ca
     volumes:
-      - pkcs11:/run/p11-kit
+      - pkcs11-b1:/run/p11-kit
       - "./dev/data/root-b1:/app/db"
       - "./dev/root-b1.cnf:/app/db/openssl.cnf:ro"
       - "./dev/data/tls:/app/certs"
@@ -149,7 +184,7 @@ cat roots.crt.pem root-a1.root-b1.crt.pem root-b1.root-a1.crt.pem > roots.fullch
       - "./dev/data/inter-x1/ca.serial:/app/db/inter-x1.serial:ro"
     env_file:
       - ./dev/dev.env
-      - ./dev/token.env
+      - ./dev/token-b1.env
       - ./dev/local.env
     environment:
       CA_NAME: root-b1
@@ -190,6 +225,7 @@ openssl req -new \
     build:
       target: offline-ca
     volumes:
+      - pkcs11-x1:/run/p11-kit
       - "./dev/data/inter-x1:/app/db"
       - "./dev/inter-x1.cnf:/app/db/openssl.cnf:ro"
       - "./dev/data/tls:/app/certs"
@@ -198,6 +234,7 @@ openssl req -new \
       - "./dev/data/secrets/inter-x1:/app/private"
     env_file:
       - ./dev/dev.env
+      - ./dev/token-x1.env
       - ./dev/local.env
     depends_on:
       kms-csr:
@@ -243,59 +280,37 @@ openssl req -new \
     depends_on:
       kms:
         condition: service_started
-  inter-ca:
-    build:
-      target: online-ca
-    networks:
-      - iamnet
-    env_file:
-      - ./dev/dev.env
-      - ./dev/local.env
-    volumes:
-      - "./dev/data/inter-ca:/home/step"
-      - "./dev/data/tls/root-a1.crt.pem:/home/step/root_ca.crt:ro"
-      - "./dev/data/secrets/inter-x1/inter-x1.keyonly.pem:/home/step/intermediate_ca_key:ro"
-      - "./dev/data/tls/inter-x1.root-a1.crt.pem:/home/step/intermediate_ca.crt:ro"
-    healthcheck:
-      interval: 5s
-    depends_on:
-      merge-x1:
-        condition: service_completed_successfully
-      kms-init:
-        condition: service_completed_successfully
-    environment:
-      DOCKER_STEPCA_INIT_NAME: Example Enterprises Intermediate X1
-      DOCKER_STEPCA_INIT_DNS_NAMES: inter-ca
-      DOCKER_STEPCA_INIT_PROVISIONER_NAME: bootstrap
-    tty: true
-    command: [ "/bin/sh", "-c", "/usr/local/bin/adopt && step-ca config/ca.json" ]
   dev:
     environment:
       VAULT_ADDR: https://kms
       VAULT_CACERT: /certs/roots.fullchain.pem
-      P11_KIT_SERVER_ADDRESS: unix:path=/run/p11-kit/pkcs11.sock
+    env_file:
+      - ./dev/token-user.env
     volumes:
       - "./dev/data/tls:/certs:ro"
-      - pkcs11:/run/p11-kit
+      - pkcs11-user:/run/p11-kit
     depends_on:
-      hsm:
+      hsm-user:
         condition: service_started
       kms-init:
         condition: service_completed_successfully
-  infra-ca:
-    depends_on:
-      inter-ca:
-        condition: service_healthy
-  prov-ca:
-    depends_on:
-      inter-ca:
-        condition: service_healthy
-  user-ca:
-    depends_on:
-      inter-ca:
-        condition: service_healthy
+#  infra-ca:
+#    depends_on:
+#      inter-ca:
+#        condition: service_healthy
+#  prov-ca:
+#    depends_on:
+#      inter-ca:
+#        condition: service_healthy
+#  user-ca:
+#    depends_on:
+#      inter-ca:
+#        condition: service_healthy
 #    depends_on:
 #      kms:
 #        condition: service_healthy
 volumes:
-  pkcs11:
+  pkcs11-a1:
+  pkcs11-b1:
+  pkcs11-x1:
+  pkcs11-user:

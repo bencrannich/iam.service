@@ -9,6 +9,7 @@ log()
 
 GNUTLS_SO_PIN=${GNUTLS_SO_PIN:-88888888}
 GNUTLS_PIN=${GNUTLS_PIN:-00000000}
+TOKEN_LABEL=${TOKEN_LABEL:-"Emulated Hardware Token"}
 
 found=no
 for token in /var/lib/softhsm/tokens/* ; do
@@ -22,7 +23,7 @@ if [ "${found}" = "no" ] ; then
 	log "no tokens found, initialising new SoftHSM"
 	softhsm2-util --init-token \
 		--free \
-		--label "HSM" \
+		--label "${TOKEN_LABEL}" \
 		--so-pin ${GNUTLS_SO_PIN} \
 		--pin ${GNUTLS_PIN}
 	log "token initialised"

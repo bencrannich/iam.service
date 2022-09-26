@@ -174,7 +174,7 @@ if ! [ -r ${CERTS}/${CA_NAME}.crt.pem ] ; then
 		sub)
 			if ! [ -r ${REQUESTS}/${CA_NAME}.req.pem ] ; then
 				log "generating certificate request for submission to parent CA"
-				openssl req -batch -config ${DB}/openssl.cnf -key ${PRIVKEYS}/${CA_NAME}.key.pem -new -out ${REQUESTS}/${CA_NAME}.req.pem
+				openssl req ${engineopts} -batch -config ${DB}/openssl.cnf -key "${privkey}" ${keyopts} -new -out ${REQUESTS}/${CA_NAME}.req.pem
 			fi
 			;;
 		*)
@@ -229,7 +229,6 @@ case "$1" in
 				serial=$( openssl rand -hex 16 )
 				log "generated serial number for '$2' is '${serial}'"
 			fi
-			set -x
 			openssl x509 ${engineopts} \
 				-sha512 \
 				-req \
