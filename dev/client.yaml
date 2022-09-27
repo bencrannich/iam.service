@@ -6,15 +6,19 @@ services:
     env_file:
       - ./dev/dev.env
       - ./dev/local.env
+    environment:
+      PROV_TLS_ANCHORS_DIR: /config/anchors/tls
+      PROV_ACME_URL: https://prov-ca:9000/acme/hosts/directory
     volumes:
-# This should be removed once the connection to the LDAP server is always via
-# LDAPS
-      - slaprun:/var/run/slapd
+      - "./dev/data/tls/root-a1.crt.pem:/config/anchors/tls/root-a1.crt"
+      - "./dev/data/tls/root-b1.crt.pem:/config/anchors/tls/root-b1.crt"
 # This is a persistent volume for convenience
       - home:/me
 # Make the source tree available at /workspace for convenience
       - "./:/workspace:cached"
     depends_on:
+      prov-ca:
+        condition: service_healthy
       ds:
         condition: service_started
       kdc:

@@ -42,16 +42,22 @@ services:
   prov-ca:
     build:
       target: online-ca
+    tmpfs:
+      - "/home/step/secrets:mode=0700,uid=1000,gid=1000"
     networks:
       - iamnet
   infra-ca:
     build:
       target: online-ca
+    tmpfs:
+      - "/home/step/secrets:mode=0700,uid=1000,gid=1000"
     networks:
       - iamnet
   user-ca:
     build:
       target: online-ca
+    tmpfs:
+      - "/home/step/secrets:mode=0700,uid=1000,gid=1000"
     networks:
       - iamnet
 volumes:

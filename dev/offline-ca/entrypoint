@@ -44,6 +44,7 @@ log "initialising the '${CA_NAME}' certificate authority"
 
 if ! [ -z "${P11_KIT_SERVER_ADDRESS}" ] ; then
 	log "Attempting to initialise PKCS#11 interface..."
+	set +e
 	PKCS11_URL="$(p11tool --list-token-urls --provider /usr/lib/$(uname -m)-linux-gnu/pkcs11/p11-kit-client.so)"
 	if [ -z "$PKCS11_URL" ] ; then
 		if [ -r "/run/p11-kit/pkcs11.url" ] ; then
@@ -57,6 +58,7 @@ if ! [ -z "${P11_KIT_SERVER_ADDRESS}" ] ; then
 		log "ERROR: GNUTLS_PIN is not set"
 		exit 11
 	fi
+	set -e
 	log "using PKCS#11 token '${PKCS11_URL}'"
 fi
 
@@ -112,6 +114,7 @@ fi
 if ! [ -z "$PKCS11_URL" ] ; then
 	KEYFORM="engine"
 	log "checking for private keys"
+	set +e
 	PRIVKEY_URL="$(p11tool --list-all-privkeys --login --only-urls "${PKCS11_URL}" | grep "object=${CA_NAME};")"
 	if [ -z "${PRIVKEY_URL}" ] ; then
 		log "NOTICE: no private key found for CA"
@@ -135,6 +138,7 @@ if ! [ -z "$PKCS11_URL" ] ; then
 			exit 112
 		fi
 	fi
+	set -e
 	log "using private key ${PRIVKEY_URL}"
 else
 	KEYFORM="pem"
@@ -218,6 +222,7 @@ if ! [ -r ${REQUESTS}/${CA_NAME}.req.pem ] && [ -r ${CERTS}/${CA_NAME}.crt.pem ]
 fi
 
 if [ -r "${CERTS}/${CA_NAME}.crt.pem" ] && ! [ -z "${PKCS11_URL}" ] ; then
+	set +e
 	CERT_URL="$(p11tool --list-all-certs --login --only-urls "${PKCS11_URL}" | grep "object=${CA_NAME};" | head -1)"
 	if [ -z "${CERT_URL}" ] ; then
 		log "installing certificate to HSM"
@@ -228,6 +233,7 @@ if [ -r "${CERTS}/${CA_NAME}.crt.pem" ] && ! [ -z "${PKCS11_URL}" ] ; then
 			exit 113
 		fi
 	fi
+	set -e
 	log "CA certificate is '${CERT_URL}'"
 fi
 
@@ -238,44 +244,60 @@ if [ -z "$1" ] ; then
 	exit 0
 fi
 
+ca_sign() {
+	if [ -z "$1" ] ; then
+		log "ERROR: no request specified to sign"
+		exit 101
+	fi
+	if ! [ -r "${REQUESTS}/$1.req.pem" ] ; then
+		log "ERROR: $1.req.pem does not exist"
+		exit 50
+	fi
+	profile="default"
+	if ! [ -z "$2" ] ; then
+		profile="$2"
+	fi
+	log "signing '$1' with ${CA_NAME} using profile '${profile}'"
+	if [ -r "${DB}/$2.serial" ] ; then
+		serial=$( cat ${DB}/$2.serial )
+		log "configured serial number for '$1' is '${serial}'"
+	else
+		serial=$( openssl rand -hex 16 )
+		log "generated serial number for '$1' is '${serial}'"
+	fi
+	openssl x509 ${engineopts} \
+		-sha512 \
+		-req \
+		-extfile ${DB}/openssl.cnf \
+		-extensions ${profile}_extensions \
+		-set_serial 0x${serial} \
+		-CA ${CERTS}/${CA_NAME}.crt.pem \
+		-CAkey "${privkey}" ${cakeyopts} \
+		-in ${REQUESTS}/$1.req.pem \
+		-out ${CERTS}/$1.${CA_NAME}.crt.pem
+	cat ${CERTS}/$1.${CA_NAME}.crt.pem ${CERTS}/${CA_NAME}.fullchain.pem > ${CERTS}/$1.${CA_NAME}.fullchain.pem
+	log "successfully signed $1 with ${CA_NAME}"
+	return 0
+}
+
 case "$1" in
 	sign|issue)
-			if [ -z "$2" ] ; then
-				log "ERROR: no request specified to sign"
-				exit 101
-			fi
-			if ! [ -r "${REQUESTS}/$2.req.pem" ] ; then
-				log "ERROR: $2.req.pem does not exist"
-				exit 50
-			fi
-			profile="default"
-			if ! [ -z "$3" ] ; then
-				profile="$3"
-			fi
-			log "signing '$2' with ${CA_NAME} using profile '${profile}'"
-			if [ -r "${DB}/$2.serial" ] ; then
-				serial=$( cat ${DB}/$2.serial )
-				log "configured serial number for '$2' is '${serial}'"
-			else
-				serial=$( openssl rand -hex 16 )
-				log "generated serial number for '$2' is '${serial}'"
-			fi
-			openssl x509 ${engineopts} \
-				-sha512 \
-				-req \
-				-extfile ${DB}/openssl.cnf \
-				-extensions ${profile}_extensions \
-				-set_serial 0x${serial} \
-				-CA ${CERTS}/${CA_NAME}.crt.pem \
-				-CAkey "${privkey}" ${cakeyopts} \
-				-in ${REQUESTS}/$2.req.pem \
-				-out ${CERTS}/$2.${CA_NAME}.crt.pem
-			cat ${CERTS}/$2.${CA_NAME}.crt.pem ${CERTS}/${CA_NAME}.fullchain.pem > ${CERTS}/$2.${CA_NAME}.fullchain.pem
-			log "successfully signed $2 with ${CA_NAME}"
-			exit 0
+		shift
+		ca_sign "$@"
+		;;
+	sign-store)
+		shift
+		if [ -z "${VAULT_ADDR}" ] ; then
+			log "ERROR: VAULT_ADDR is not set, cannot store certificates"
+			exit 150
+		fi
+		ca_sign "$@"
+		log "writing root and intermediate certificates to KMS"
+		cat ${CERTS}/root-a1.crt.pem | vault kv put -mount secret "$1/root_ca_crt" pem=-
+		cat ${CERTS}/$1.${CA_NAME}.crt.pem ${CERTS}/${CA_NAME}.fullchain.pem | vault kv put -mount secret "$1/intermediate_ca_crt" pem=-
 		;;
 	*)
-		log "unsupported command '$1' (expected 'sign')"
+		log "unsupported command '$1' (expected 'sign' or 'sign-store')"
 		exit 101
 		;;
 esac

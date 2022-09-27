@@ -17,6 +17,7 @@ services:
       CA_NAME: root-a1
       CA_TYPE: root
       CA_KEYTYPE: rsa
+    network_mode: none
   root-b1:
     build:
       target: offline-ca
@@ -39,6 +40,7 @@ services:
       root-a1:
         condition: service_completed_successfully
     command: [ "sign", "root-a1", "root_a1" ]
+    network_mode: none
   sign-b1:
     build:
       target: offline-ca
@@ -61,6 +63,7 @@ services:
       root-b1:
         condition: service_completed_successfully
     command: [ "sign", "root-b1", "root_b1" ]
+    network_mode: none
   merge-roots:
     build:
       target: core
@@ -72,3 +75,4 @@ cat roots.crt.pem root-a1.root-b1.crt.pem root-b1.root-a1.crt.pem > roots.fullch
     depends_on:
       sign-b1:
         condition: service_completed_successfully
+    network_mode: none

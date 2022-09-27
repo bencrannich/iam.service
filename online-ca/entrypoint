@@ -1,0 +1,10 @@
+#! /bin/sh
+
+set -e
+
+if [ -x /app/libexec/provision ] ; then
+	printf "provisioning $(hostname)...\n" >&2
+	exec /app/libexec/provision /app/libexec/ca-wrapper /bin/bash /entrypoint.sh "$@"
+fi
+
+exec /app/libexec/ca-wrapper /bin/bash /entrypoint.sh "$@"

@@ -43,10 +43,57 @@ vault operator unseal "${KMS_UNSEAL_KEY_2}"
 vault operator unseal "${KMS_UNSEAL_KEY_3}"
 vault login "${KMS_ROOT_TOKEN}"
 
-# Perform one-time setup of the instance
+## Perform one-time setup of the instance
+
+# NOTE: If you edit the below, you will need to remove dev/secrets/kms (e.g.,
+# via `make fullclean`) for the changes to have any effect
 
 if [ "${init}" = "yes" ] ; then
+	printf "configuring KMS instance for the first time..." >&2
 	vault secrets enable -path=secret -version=2 kv
+
+	# The intermediate CA can provide the certificates to the online CAs,
+	# but can't read any of their keys
+	vault policy write inter-ca - <<EOF
+path "secret/data/prov-ca/root_ca_crt" {
+	capabilities = [ "create", "update", "delete", "patch" ]
+}
+path "secret/data/prov-ca/intermediate_ca_crt" {
+	capabilities = [ "create", "update", "delete", "patch" ]
+}
+EOF
+	# The provisioning CA can only read its certificates, but can otherwise
+	# perform any CRUD operations within secret/data/prov-ca
+	vault policy write prov-ca - <<EOF
+path "secret/data/prov-ca/*" {
+	capabilities = [ "create", "read", "update", "delete", "patch" ]
+}
+path "secret/data/prov-ca/root_ca_crt" {
+	capabilities = [ "read" ]
+}
+path "secret/data/prov-ca/intermediate_ca_crt" {
+	capabilities = [ "read" ]
+}
+EOF
+	# Generate tokens for the CAs bound to the above policies, and write these
+	# to files which are mounted into the respective containers to allow them
+	# to access the secrets in Vault
+	#
+	# Once the provisioning CA is healthy, other containers can use that to
+	# provision and authenticate themselves and access Vault, rather having
+	# static tokens passed around in environment files
+	INTER_TOKEN="$(vault token create -field token -policy=inter-ca)"
+	touch /secrets/inter-ca.credentials && chmod 600 /secrets/inter-ca.credentials
+	cat >/secrets/inter-ca.credentials <<EOF
+PROV_VAULT_ADDR='${VAULT_ADDR}'
+PROV_VAULT_TOKEN='${INTER_TOKEN}'
+EOF
+	PROV_TOKEN="$(vault token create -field token -policy=prov-ca)"
+	touch /secrets/prov-ca.credentials && chmod 600 /secrets/prov-ca.credentials
+	cat >/secrets/prov-ca.credentials <<EOF
+PROV_VAULT_ADDR='${VAULT_ADDR}'
+PROV_VAULT_TOKEN='${PROV_TOKEN}'
+EOF
 fi
 
 exit 0

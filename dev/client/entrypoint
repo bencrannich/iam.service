@@ -1,0 +1,10 @@
+#! /bin/sh
+
+set -e
+if [ -x /app/libexec/provision ] ; then
+	printf "provisioning $(hostname)...\n" >&2
+	/app/libexec/provision
+fi
+
+printf "starting nslcd in the foreground\n" >&2
+/usr/sbin/nslcd --debug

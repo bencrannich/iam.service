@@ -5,6 +5,7 @@ services:
   kms-csr:
     build:
       target: offline-ca
+    network_mode: none
     entrypoint: ""
     volumes:
       - "./dev/secrets/kms:/keys"
@@ -17,6 +18,7 @@ openssl req -new \
   kms-cert:
     build:
       target: offline-ca
+    network_mode: none
     volumes:
       - "./dev/data/inter-x1:/app/db"
       - "./dev/inter-x1.cnf:/app/db/openssl.cnf:ro"
@@ -70,6 +72,24 @@ openssl req -new \
     depends_on:
       kms:
         condition: service_started
+  prov-ca-init:
+    environment:
+      VAULT_ADDR: https://kms
+      VAULT_CACERT: /certs/roots.fullchain.pem
+    volumes:
+      - "./dev/data/tls:/certs:ro"
+    depends_on:
+      kms:
+        condition: service_healthy
+  sign-prov-x1:
+    environment:
+      VAULT_ADDR: https://kms
+      VAULT_CACERT: /certs/roots.fullchain.pem
+    volumes:
+      - "./dev/data/tls:/certs:ro"
+    depends_on:
+      kms:
+        condition: service_healthy
   prov-ca:
     environment:
       VAULT_ADDR: https://kms
@@ -130,14 +150,14 @@ openssl req -new \
         condition: service_completed_successfully
       kms:
         condition: service_healthy
-  client:
-    environment:
-      VAULT_ADDR: https://kms
-      VAULT_CACERT: /certs/roots.fullchain.pem
-    volumes:
-      - "./dev/data/tls:/certs:ro"
-    depends_on:
-      kms-init:
-        condition: service_completed_successfully
-      kms:
-        condition: service_healthy
+#  client:
+#   environment:
+#    VAULT_ADDR: https://kms
+#    VAULT_CACERT: /certs/roots.fullchain.pem
+#   volumes:
+#      - "./dev/data/tls:/certs:ro"
+#    depends_on:
+#      kms-init:
+#        condition: service_completed_successfully
+#      kms:
+#        condition: service_healthy

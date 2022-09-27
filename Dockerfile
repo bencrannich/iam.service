@@ -1,4 +1,4 @@
-FROM debian:stable-slim AS core
+FROM debian:stable-slim AS base
 
 WORKDIR /root
 
@@ -12,11 +12,13 @@ APT::Get::Assume-Yes "true"; \n\
 ' > /etc/apt/apt.conf.d/noninteractive
 ONBUILD RUN apt-get update
 
+## Smallstep
+
 FROM smallstep/step-cli as step
 
-## SoftHSM server
+## SoftHSM server (used only in development)
 
-FROM core AS hsm
+FROM base AS hsm
 
 RUN apt-get install -qq gnutls-bin p11-kit softhsm 
 
@@ -28,27 +30,7 @@ ENTRYPOINT [ "/app/server" ]
 VOLUME [ "/run/p11-kit", "/var/lib/softhsm/tokens" ]
 HEALTHCHECK --interval=5s --timeout=10s --start-period=2s --retries=3 CMD [ "/app/healthcheck" ]
 
-## Offline Certificate Authority (CA) container
-
-FROM core AS offline-ca
-
-RUN apt-get install -qq openssl gnutls-bin p11-kit libengine-pkcs11-openssl
-RUN mkdir -p /app/db /app/certs /app/requests /app/keys /app/private
-COPY dev/offline-ca/entrypoint /app/entrypoint
-VOLUME [ "/app/db", "/app/certs", "/app/requests", "/app/keys", "/app/private" ]
-ENTRYPOINT [ "/app/entrypoint" ]
-RUN mkdir -p /etc/pkcs11/modules && echo "module: /usr/lib/$(uname -m)-linux-gnu/pkcs11/p11-kit-client.so" > /etc/pkcs11/modules/p11-kit-client.module
-
-## Online Certificate Authority (CA) container
-
-FROM smallstep/step-ca AS online-ca
-
-# This script is used by inter-ca which only exists in the development
-# environment
-
-COPY dev/online-ca/adopt /usr/local/bin/
-
-## Keys/Secrets Manager container
+## Keys/Secrets Manager container (used only in development)
 
 FROM vault AS kms
 RUN mkdir -p /app
@@ -64,13 +46,53 @@ RUN chmod +x /app/bootstrap
 HEALTHCHECK NONE
 ENTRYPOINT [ "/app/bootstrap" ]
 
+## Offline Certificate Authority (CA) container (used only in development)
+
+FROM base AS offline-ca
+
+RUN apt-get install -qq openssl gnutls-bin p11-kit libengine-pkcs11-openssl
+RUN mkdir -p /app/db /app/libexec /app/certs /app/requests /app/keys /app/private
+RUN mkdir -p /etc/pkcs11/modules && echo "module: /usr/lib/$(uname -m)-linux-gnu/pkcs11/p11-kit-client.so" > /etc/pkcs11/modules/p11-kit-client.module
+COPY dev/offline-ca/entrypoint /app/entrypoint
+COPY libexec/provision /app/libexec/provision
+COPY --from=kms /bin/vault /usr/local/bin/
+RUN chmod +x /app/entrypoint /app/libexec/provision 
+VOLUME [ "/app/db", "/app/certs", "/app/requests", "/app/keys", "/app/private" ]
+ENTRYPOINT [ "/app/entrypoint" ]
+HEALTHCHECK NONE
+
+## Online Certificate Authority (CA) container
+
+FROM smallstep/step-ca AS online-ca
+USER root
+RUN mkdir -p /app /app/libexec
+#COPY dev/online-ca/adopt /usr/local/bin/
+COPY libexec/provision /app/libexec/provision
+COPY online-ca/ca-wrapper /app/libexec/ca-wrapper
+COPY online-ca/entrypoint /app/entrypoint
+COPY --from=kms /bin/vault /usr/local/bin/
+RUN chmod +x /app/entrypoint /app/libexec/provision /app/libexec/ca-wrapper
+USER step
+ENTRYPOINT [ "/app/entrypoint" ]
+CMD /usr/local/bin/step-ca --password-file $PWDPATH $CONFIGPATH
+
+## "Core" container, used as a basis for the main service containers
+
+FROM base AS core
+RUN apt-get install -qq certbot heimdal-clients ldap-utils openssl gnutls-bin pwgen p11-kit libengine-pkcs11-openssl
+RUN mkdir -p /app /app/libexec
+COPY --from=step /usr/local/bin/step /usr/local/bin/
+COPY --from=kms /bin/vault /usr/local/bin/
+COPY libexec/provision /app/libexec
+RUN chmod +x /app/libexec/provision
+ENTRYPOINT [ "/app/libexec/provision" ]
+CMD [ "/bin/bash" ]
+
 ## LDAP Directory Service (DS) container
 
 FROM core AS ds
 
-COPY --from=step /usr/local/bin/step /usr/local/bin/
-
-RUN apt-get install slapd ldap-utils heimdal-clients
+RUN apt-get install slapd 
 
 EXPOSE 389
 EXPOSE 636
@@ -90,9 +112,7 @@ CMD [ "run" ]
 
 FROM core AS kerberos
 
-RUN apt-get install -qq heimdal-servers heimdal-clients heimdal-kdc openssl pwgen ldap-utils
-
-COPY --from=step /usr/local/bin/step /usr/local/bin/
+RUN apt-get install -qq heimdal-servers heimdal-kdc
 
 RUN mkdir -p /app /app/config /app/lib /app/db /app/etc
 VOLUME [ "/app/db" ]
@@ -103,9 +123,8 @@ RUN mv /var/lib/heimdal-kdc /var/lib/heimdal-kdc.dist && ln -sf /app/db/kdc /var
 
 ## Development client container
 
-FROM kerberos AS client
-COPY --from=vault /bin/vault /usr/local/bin
-RUN apt-get install -qq procps nano nslcd libnss-ldapd finger less libpam-krb5 gnutls-bin p11-kit strace libengine-pkcs11-openssl
+FROM core AS client
+RUN apt-get install -qq procps nano nslcd libnss-ldapd finger less libpam-krb5 strace
 RUN mkdir -p /etc/ldap
 COPY dev/client/ldap.conf /etc/ldap/
 COPY dev/client/krb5.conf /etc/
@@ -117,11 +136,12 @@ RUN mkdir /me
 # local.env
 RUN chown 5000:5000 /me
 RUN mkdir -p /etc/pkcs11/modules && echo "module: /usr/lib/$(uname -m)-linux-gnu/pkcs11/p11-kit-client.so" > /etc/pkcs11/modules/p11-kit-client.module
-
+COPY dev/client/entrypoint /app/entrypoint
+COPY dev/client/healthcheck /app/healthcheck
+RUN chmod +x /app/entrypoint /app/healthcheck
 VOLUME [ "/me" ]
-ENTRYPOINT [ "/bin/sh", "-c" ]
-HEALTHCHECK --interval=1s --timeout=30s --start-period=5s --retries=3 CMD [ "/bin/true" ]
-CMD [ "/usr/sbin/nslcd --debug" ]
+ENTRYPOINT [ "/app/entrypoint" ]
+HEALTHCHECK --interval=1s --timeout=30s --start-period=5s --retries=3 CMD [ "/app/healthcheck" ]
 
 ## Kerberos Key Distribution Center (KDC) container
 

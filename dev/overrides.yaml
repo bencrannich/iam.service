@@ -11,10 +11,6 @@ services:
       - "./dev/data/prov-ca:/home/step"
     healthcheck:
       interval: 5s
-    environment:
-      DOCKER_STEPCA_INIT_NAME: Example Enterprises Provisioning
-      DOCKER_STEPCA_INIT_DNS_NAMES: prov-ca
-      DOCKER_STEPCA_INIT_PROVISIONER_NAME: bootstrap
   infra-ca:
     env_file:
       - ./dev/dev.env
@@ -47,12 +43,12 @@ services:
     volumes:
       - "./dev/data/tls:/app/tls"
       - "./dev/data/ds:/app/db"
-    domainname: EXAMPLE.COM
     ports:
       - "127.0.0.1:636:636/tcp"
   kdc:
     env_file:
-      ./dev/dev.env
+      - ./dev/dev.env
+      - ./dev/local.env
     environment:
       IAM_KADMINDIR: /app/kadmin-data
       IAM_SECRETSDIR: /app/secrets
@@ -60,10 +56,9 @@ services:
       - "./dev/secrets/kdc:/app/secrets"
       - "./dev/data/kdc:/app/db"
       - "./dev/secrets/kadmin:/app/kadmin-data"
-    domainname: EXAMPLE.COM
   kadmin:
     env_file:
-      ./dev/dev.env
+      - ./dev/dev.env
+      - ./dev/local.env
     volumes:
       - "./dev/secrets/kadmin:/app/db"
-    domainname: EXAMPLE.COM

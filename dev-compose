@@ -37,6 +37,13 @@ is_true() {
 	return 1
 }
 
+ensure_exists() {
+	for file in "$@" ; do
+		mkdir -p "$(dirname "${file}")"
+		touch "${file}"
+	done
+}
+
 if is_true "${IAM_DEV_LIGHT}" ; then
 	IAM_DEV_CLIENT=${IAM_DEV_CLIENT:-NO}
 	infra_yaml=""
@@ -47,7 +54,9 @@ IAM_DEV_CLIENT=${IAM_DEV_CLIENT:-YES}
 is_true "${IAM_DEV_CLIENT}" && client_yaml="-f dev/client.yaml"
 
 mkdir -p dev/data
-touch dev/ds-step.env
+ensure_exists dev/ds-step.env
+ensure_exists dev/secrets/kms/inter-ca.credentials
+ensure_exists dev/secrets/kms/prov-ca.credentials
 
 ## dev/local.env is included for any environment overrides you want to
 ## apply - it's excluded from git and touched here only to guarantee

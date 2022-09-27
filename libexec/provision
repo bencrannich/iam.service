@@ -1,0 +1,103 @@
+#! /bin/sh
+
+## This script is used to provision a container on startup, using whatever
+## credentials it's been provided to obtain certificates, Vault tokens, and
+## Kerberos keys and tickets.
+##
+## If provided with any arguments, they will be treated as an executable
+## pathname and arguments and `exec`'d once provisioning is complete (making
+## this script suitable as a rudimentary Docker `ENTRYPOINT`)
+
+set -e
+
+log() {
+	printf "provision: $*\n" >&2
+}
+[ -z "${UID}" ] && UID=$(id -u)
+
+HOSTNAME=${HOSTNAME:-$(hostname || echo localhost)}
+PROV_ACME_EMAIL=${PROV_ACME_EMAIL:-auto-provision@${HOSTNAME}}
+
+if ! [ -z "${PROV_CREDENTIALS_FILE}" ] ; then
+	log "reading credentials from ${PROV_CREDENTIALS_FILE}"
+	. ${PROV_CREDENTIALS_FILE}
+fi
+
+if ! [ -z "${PROV_TLS_ANCHORS_DIR}" ] && [ "${UID}" -eq 0 ] ; then
+	if [ -d ${PROV_TLS_ANCHORS_DIR} ] ; then
+		log "installing trust anchors from ${PROV_TLS_ANCHORS_DIR}"
+		for cert in ${PROV_TLS_ANCHORS_DIR}/*.crt ; do
+			[ -f "${cert}" ] || continue
+			name=$(basename ${cert})
+			log "+ installing root certificate ${name}"
+			mkdir -p /usr/share/ca-certificates/auto-provisioned
+			cp ${cert} /usr/share/ca-certificates/auto-provisioned
+			if ! grep -E "^auto-provisioned/${name}" /etc/ca-certificates.conf >/dev/null ; then
+				echo "auto-provisioned/${name}" >> /etc/ca-certificates.conf
+			fi
+		done
+		update-ca-certificates
+	fi
+fi
+
+if ! [ -z "${PROV_STEP_URL}" ] ; then
+	if [ -z "${PROV_STEP_FINGERPRINT}" ] ; then
+		log "ERROR: PROV_STEP_URL is set but PROV_STEP_FINGERPRINT is not"
+		exit 10
+	fi
+	log "connecting to Step CA ${PROV_STEP_URL}"
+	step ca bootstrap --ca-url "${PROV_STEP_URL}" --fingerprint ${PROV_STEP_FINGERPRINT} --install
+fi
+
+if ! [ -z "${PROV_ACME_URL}" ] && [ "${UID}" -eq 0 ] ; then
+	log "obtaining host certificate from provisioning CA at ${PROV_ACME_URL}"
+	certbot certonly -n --standalone \
+		--server "${PROV_ACME_URL}" \
+		--cert-name auto-provisioned \
+		--non-interactive --agree-tos --email "${PROV_ACME_EMAIL}" \
+		-d $(hostname -f)
+fi
+
+if ! [ -z "${PROV_VAULT_ADDR}" ] ; then
+	VAULT_ADDR="${PROV_VAULT_ADDR}"
+fi
+
+if ! [ -z "${VAULT_ADDR}" ] ; then
+	export VAULT_ADDR
+	log "connecting to KMS at ${VAULT_ADDR}"
+	if ! [ -z "${PROV_VAULT_TOKEN}" ] ; then
+		VAULT_TOKEN="${PROV_VAULT_TOKEN}"
+		export VAULT_TOKEN
+	fi
+	if [ -z "${VAULT_TOKEN}" ] && [ -r /etc/letsencrypt/live/auto-provisioned/privkey.pem ] && [ -r /etc/letsencrypt/live/auto-provisioned/fullchain.pem ] ; then
+		VAULT_TOKEN=$(vault login -field=token -no-store -method=cert \
+			-client-cert=/etc/letsencrypt/live/auto-provisioned/fullchain.pem \
+			-client-key=/etc/letsencrypt/live/auto-provisioned/privkey.pem)
+		export VAULT_TOKEN
+	fi
+	if [ -z "${VAULT_TOKEN}" ] ; then
+		log "WARNING: [PROV_]VAULT_ADDR is set but [PROV_]VAULT_TOKEN is not; Vault may not be useable"
+	else
+		set +e
+		msg=no
+		while true ; do
+			vault status
+			st=$?
+			if [ $st -eq 0 ] ; then
+				break
+			fi
+			if [ $msg = no ] ; then
+				log "waiting for ${VAULT_ADDR}..."
+				msg=yes
+			fi
+			sleep 1
+		done
+		log "KMS is available"
+	fi		
+fi
+
+if [ -z "$*" ] ; then
+	exit 0
+fi
+
+exec "$@"

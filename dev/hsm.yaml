@@ -15,6 +15,7 @@ services:
     volumes:
       - pkcs11-a1:/run/p11-kit
       - "./dev/secrets/hsm/a1:/var/lib/softhsm/tokens"
+    network_mode: none
   hsm-b1:
     build:
       target: hsm
@@ -25,6 +26,7 @@ services:
     volumes:
       - pkcs11-b1:/run/p11-kit
       - "./dev/secrets/hsm/b1:/var/lib/softhsm/tokens"
+    network_mode: none
   hsm-x1:
     build:
       target: hsm
@@ -35,6 +37,7 @@ services:
     volumes:
       - pkcs11-x1:/run/p11-kit
       - "./dev/secrets/hsm/x1:/var/lib/softhsm/tokens"
+    network_mode: none
   hsm-user:
     build:
       target: hsm
@@ -45,6 +48,7 @@ services:
     volumes:
       - pkcs11-user:/run/p11-kit
       - "./dev/secrets/hsm/user:/var/lib/softhsm/tokens"
+    network_mode: none
   root-a1:
     depends_on:
       hsm-a1:
@@ -94,6 +98,14 @@ services:
     env_file:
       - ./dev/token-b1.env
   kms-cert:
+    depends_on:
+      hsm-x1:
+        condition: service_healthy
+    volumes:
+      - pkcs11-x1:/run/p11-kit
+    env_file:
+      - ./dev/token-x1.env
+  sign-prov-x1:
     depends_on:
       hsm-x1:
         condition: service_healthy

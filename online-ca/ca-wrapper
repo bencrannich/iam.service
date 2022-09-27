@@ -1,0 +1,65 @@
+#! /bin/sh
+
+## This script is executed one the container has been provisioned
+## and we should fetch our intermediate key and password from
+## the KMS
+
+#set -x
+
+key_fetched=no
+use_vault=no
+
+if ! [ -z "${VAULT_ADDR}" ] && ! [ -z "${CA_WRAPPER_NAME}" ] ; then
+	use_vault=yes
+fi
+
+if [ $use_vault = yes ] && [ -r ${HOME}/config/ca.json ]; then
+	if pem=$(vault kv get -field pem secret/${CA_WRAPPER_NAME}/root_ca_crt) ; then
+		printf "ca-wrapper: updating %s from KMS\n" "${HOME}/certs/root_ca.crt" >&2
+		echo "${pem}" > ${HOME}/certs/root_ca.crt
+		ROOT_FINGERPRINT=$(step certificate fingerprint ${HOME}/certs/root_ca.crt)
+		if ! [ -z "${ROOT_FINGERPRINT}" ] && [ -r ${HOME}/config/defaults.json ] ; then
+			printf "ca-wrapper: updating %s (new fingerprint is %s)\n" "${HOME}/config/defaults.json" "${ROOT_FINGERPRINT}"
+			sed -e s'@"fingerprint":\(.*\)$@"fingerprint":"'${ROOT_FINGERPRINT}'",@' ${HOME}/config/defaults.json > ${HOME}/config/defaults.json.new
+			mv ${HOME}/config/defaults.json ${HOME}/config/defaults.json.old
+			mv ${HOME}/config/defaults.json.new ${HOME}/config/defaults.json
+#			cat ${HOME}/config/defaults.json
+		fi
+	fi
+
+	if pem=$(vault kv get -field pem secret/${CA_WRAPPER_NAME}/intermediate_ca_crt) ; then
+		printf "ca-wrapper: updating %s from KMS\n" "${HOME}/certs/intermediate_ca.crt" >&2
+		echo "${pem}" > ${HOME}/certs/intermediate_ca.crt
+	fi
+
+	if pem=$(vault kv get -field pem secret/${CA_WRAPPER_NAME}/intermediate_ca_key) ; then
+		printf "ca-wrapper: updating %s from KMS\n" "${HOME}/secrets/intermediate_ca_key" >&2
+		echo "${pem}" > ${HOME}/secrets/intermediate_ca_key
+		key_fetched=yes
+	fi
+
+	if pw=$(vault kv get -field password secret/${CA_WRAPPER_NAME}/intermediate_ca_key) ; then
+		printf "ca-wrapper: updating %s from KMS\n" "${HOME}/secrets/password" >&2
+		printf "%s" "${pw}" > ${HOME}/secrets/password
+	else
+		printf "ca-wrapper: WARNING: key was fetched from KMS but password was not available\n" >&2
+	fi
+fi
+
+"$@"
+result=$?
+
+if [ $result -ne 0 ] ; then
+	printf "ca-wrapper: WARNING: exit status from command was %d\n" $result >&2
+fi	
+
+if [ $use_vault = yes ] ; then
+	if [ $key_fetched = no ] && [ -r "${HOME}/secrets/intermediate_ca_key" ] ; then
+		printf "ca-wrapper: writing %s to KMS\n" "${HOME}/secrets/intermediate_ca_key" >&2
+		cat "${HOME}/secrets/intermediate_ca_key" | vault kv put -mount secret ${CA_WRAPPER_NAME}/intermediate_ca_key pem=-
+		printf "ca-wrapper: writing %s to KMS\n" "${HOME}/secrets/password" >&2
+		vault kv patch -mount secret ${CA_WRAPPER_NAME}/intermediate_ca_key password="$(cat ${HOME}/secrets/password)"
+	fi
+fi
+
+exit $result
