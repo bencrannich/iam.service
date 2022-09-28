@@ -1,0 +1,145 @@
+version: '3.3'
+services:
+# In development, the Provisioning CA is configured by the prov-ca-init job,
+# below, which bootstraps a StepCA instance and then generates a CSR, which
+# is then used to generate its intermediate CA certificate by the sign-prov-x1
+# job (which uses the inter-x1 "offline" CA)
+#
+# The main purpose of the Provisioning CA is to ensure that all of the main
+# services (ds, kdc, kadmin) can automatically obtain certificates for
+# themselves which can then be used to obtain other credentials, and to
+# provide a kind of bearer token that can be used to access the directory
+# service as an "anonymous" client (e.g., nslcd in the client container)
+#
+# To do this we configure an ACME provisioner and set the hostnames of
+# the containers explicitly to "ds", "kdc", and "kadmin"
+  prov-ca:
+    volumes:
+      - "./dev/secrets/kms/prov-ca.credentials:/secrets/prov-ca.credentials"
+      - "./dev/data/tls/roots.fullchain.pem:/config/anchors/tls/roots.fullchain.pem"
+      - "./dev/data/tls/root-a1.crt.pem:/config/anchors/tls/root-a1.crt"
+      - "./dev/data/tls/root-b1.crt.pem:/config/anchors/tls/root-b1.crt"
+    environment:
+      VAULT_CACERT: /config/anchors/tls/roots.fullchain.pem
+      CA_WRAPPER_NAME: prov-ca
+      PROV_CREDENTIALS_FILE: /secrets/prov-ca.credentials
+      PROV_TLS_ANCHORS_DIR: /config/anchors/tls
+    depends_on:
+      sign-prov-x1:
+        condition: service_completed_successfully
+  ds:
+    hostname: ds
+    environment:
+      PROV_TLS_ANCHORS_DIR: /config/anchors/tls
+      PROV_STEP_ANCHOR: /config/anchors/tls/root-a1.crt
+      PROV_ACME_URL: https://prov-ca:9000/acme/hosts/directory
+    volumes:
+      - "./dev/data/tls/root-a1.crt.pem:/config/anchors/tls/root-a1.crt"
+      - "./dev/data/tls/root-b1.crt.pem:/config/anchors/tls/root-b1.crt"
+      - "./dev/data/tls/roots.fullchain.pem:/config/anchors/tls/roots.fullchain.pem"
+    depends_on:
+      prov-ca:
+        condition: service_healthy
+  kdc:
+    hostname: kdc
+    environment:
+      PROV_TLS_ANCHORS_DIR: /config/anchors/tls
+      PROV_STEP_ANCHOR: /config/anchors/tls/root-a1.crt
+      PROV_ACME_URL: https://prov-ca:9000/acme/hosts/directory
+    volumes:
+      - "./dev/data/tls/root-a1.crt.pem:/config/anchors/tls/root-a1.crt"
+      - "./dev/data/tls/root-b1.crt.pem:/config/anchors/tls/root-b1.crt"
+      - "./dev/data/tls/roots.fullchain.pem:/config/anchors/tls/roots.fullchain.pem"
+    depends_on:
+      prov-ca:
+        condition: service_healthy
+  kadmin:
+    hostname: kadmin
+    environment:
+      PROV_TLS_ANCHORS_DIR: /config/anchors/tls
+      PROV_STEP_ANCHOR: /config/anchors/tls/root-a1.crt
+      PROV_ACME_URL: https://prov-ca:9000/acme/hosts/directory
+    volumes:
+      - "./dev/data/tls/root-a1.crt.pem:/config/anchors/tls/root-a1.crt"
+      - "./dev/data/tls/root-b1.crt.pem:/config/anchors/tls/root-b1.crt"
+      - "./dev/data/tls/roots.fullchain.pem:/config/anchors/tls/roots.fullchain.pem"
+    depends_on:
+      prov-ca:
+        condition: service_healthy
+  infra-ca:
+    hostname: infra-ca
+    environment:
+      PROV_TLS_ANCHORS_DIR: /config/anchors/tls
+      PROV_ACME_URL: https://prov-ca:9000/acme/hosts/directory
+    volumes:
+      - "./dev/data/tls/root-a1.crt.pem:/config/anchors/tls/root-a1.crt"
+      - "./dev/data/tls/root-b1.crt.pem:/config/anchors/tls/root-b1.crt"
+      - "./dev/data/tls/roots.fullchain.pem:/config/anchors/tls/roots.fullchain.pem"
+    depends_on:
+      prov-ca:
+        condition: service_healthy
+  prov-ca-init:
+    build:
+      target: online-ca
+    env_file:
+      - ./dev/dev.env
+      - ./dev/local.env
+    volumes:
+      - "./dev/secrets/kms/prov-ca.credentials:/secrets/prov-ca.credentials"
+      - "./dev/data/prov-ca:/home/step"
+      - "./dev/data/tls/roots.fullchain.pem:/config/anchors/tls/roots.fullchain.pem"
+      - "./dev/data/tls/root-a1.crt.pem:/config/anchors/tls/root-a1.crt"
+      - "./dev/data/tls/root-b1.crt.pem:/config/anchors/tls/root-b1.crt"
+      - "./dev/online-ca/prov-ca.tpl:/home/step/templates/prov-ca.tpl"
+      - "./dev/online-ca/prov-ca-hosts.tpl:/home/step/templates/prov-ca-hosts.tpl"
+    tmpfs:
+      - "/home/step/secrets"
+    command: [ "/bin/sh", "-c",
+       "[ -f .bootstrapped ] && exit 0 ; touch .bootstrapped ; \
+       step ca provisioner remove bootstrap && \
+       step ca provisioner add hosts --type ACME --x509-template=templates/prov-ca-hosts.tpl --force-cn && \
+       step certificate create 'Example Enterprises Provisioning CA' intermediate_ca.req.pem --csr --template templates/prov-ca.tpl --key secrets/intermediate_ca_key --password-file secrets/password" ]
+    environment:
+      VAULT_CACERT: /config/anchors/tls/roots.fullchain.pem
+      CA_WRAPPER_NAME: prov-ca
+      PROV_CREDENTIALS_FILE: /secrets/prov-ca.credentials
+      PROV_TLS_ANCHORS_DIR: /config/anchors/tls
+      DOCKER_STEPCA_INIT_NAME: Example Enterprises Provisioning
+      DOCKER_STEPCA_INIT_DNS_NAMES: prov-ca
+      DOCKER_STEPCA_INIT_PROVISIONER_NAME: bootstrap
+    depends_on:
+      kms-init:
+        condition: service_completed_successfully
+      kms:
+        condition: service_healthy
+    networks:
+      - iamnet
+  sign-prov-x1:
+    build:
+      target: offline-ca
+    volumes:
+      - "./dev/data/inter-x1:/app/db"
+      - "./dev/offline-ca/inter-x1.cnf:/app/db/openssl.cnf:ro"
+      - "./dev/data/tls:/app/certs"
+      - "./dev/data/tls:/app/requests"
+      - "./dev/data/tls:/app/keys"
+      - "./dev/secrets/inter-x1:/app/private"
+      - "./dev/data/prov-ca/intermediate_ca.req.pem:/app/requests/prov-ca.req.pem"
+      - "./dev/secrets/kms/inter-ca.credentials:/secrets/inter-ca.credentials"
+    env_file:
+      - ./dev/dev.env
+      - ./dev/local.env
+    environment:
+      CA_NAME: inter-x1
+      PROV_CREDENTIALS_FILE: /secrets/inter-ca.credentials
+      PROV_TLS_ANCHORS_DIR: /config/anchors/tls
+      VAULT_CACERT: /app/certs/roots.fullchain.pem
+    depends_on:
+      prov-ca-init:
+        condition: service_completed_successfully
+      kms:
+        condition: service_healthy
+    entrypoint: /app/libexec/provision
+    command: [ "/app/entrypoint", "sign-store", "prov-ca", "prov_ca" ]
+    networks:
+      - iamnet

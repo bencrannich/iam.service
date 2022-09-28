@@ -1,0 +1,688 @@
+2022-09-28 09:10:48,281:DEBUG:certbot._internal.main:certbot version: 1.12.0
+2022-09-28 09:10:48,282:DEBUG:certbot._internal.main:Location of certbot entry point: /usr/bin/certbot
+2022-09-28 09:10:48,282:DEBUG:certbot._internal.main:Arguments: ['-n', '--standalone', '--server', 'https://prov-ca:9000/acme/hosts/directory', '--cert-name', 'auto-provisioned', '--non-interactive', '--agree-tos', '--email', 'auto-provision@899b1a8cc0c4', '-d', "'ds'", '-d', '899b1a8cc0c4']
+2022-09-28 09:10:48,282:DEBUG:certbot._internal.main:Discovered plugins: PluginsRegistry(PluginEntryPoint#manual,PluginEntryPoint#null,PluginEntryPoint#standalone,PluginEntryPoint#webroot)
+2022-09-28 09:10:48,287:DEBUG:certbot._internal.log:Root logging level set at 20
+2022-09-28 09:10:48,287:INFO:certbot._internal.log:Saving debug log to /var/log/letsencrypt/letsencrypt.log
+2022-09-28 09:10:48,288:DEBUG:certbot._internal.plugins.selection:Requested authenticator standalone and installer None
+2022-09-28 09:10:48,288:DEBUG:certbot._internal.plugins.selection:Single candidate plugin: * standalone
+Description: Spin up a temporary webserver
+Interfaces: IAuthenticator, IPlugin
+Entry point: standalone = certbot._internal.plugins.standalone:Authenticator
+Initialized: <certbot._internal.plugins.standalone.Authenticator object at 0xffffa7a7e9a0>
+Prep: True
+2022-09-28 09:10:48,288:DEBUG:certbot._internal.plugins.selection:Selected authenticator <certbot._internal.plugins.standalone.Authenticator object at 0xffffa7a7e9a0> and installer None
+2022-09-28 09:10:48,288:INFO:certbot._internal.plugins.selection:Plugins selected: Authenticator standalone, Installer None
+2022-09-28 09:10:48,301:DEBUG:acme.client:Sending GET request to https://prov-ca:9000/acme/hosts/directory.
+2022-09-28 09:10:48,303:DEBUG:urllib3.connectionpool:Starting new HTTPS connection (1): prov-ca:9000
+2022-09-28 09:10:48,310:DEBUG:urllib3.connectionpool:https://prov-ca:9000 "GET /acme/hosts/directory HTTP/1.1" 200 297
+2022-09-28 09:10:48,311:DEBUG:acme.client:Received response:
+HTTP 200
+Content-Type: application/json
+Date: Wed, 28 Sep 2022 09:10:48 GMT
+Content-Length: 297
+
+{"newNonce":"https://prov-ca:9000/acme/hosts/new-nonce","newAccount":"https://prov-ca:9000/acme/hosts/new-account","newOrder":"https://prov-ca:9000/acme/hosts/new-order","revokeCert":"https://prov-ca:9000/acme/hosts/revoke-cert","keyChange":"https://prov-ca:9000/acme/hosts/key-change","meta":{}}
+
+2022-09-28 09:10:48,311:DEBUG:acme.client:Requesting fresh nonce
+2022-09-28 09:10:48,311:DEBUG:acme.client:Sending HEAD request to https://prov-ca:9000/acme/hosts/new-nonce.
+2022-09-28 09:10:48,313:DEBUG:urllib3.connectionpool:https://prov-ca:9000 "HEAD /acme/hosts/new-nonce HTTP/1.1" 200 0
+2022-09-28 09:10:48,313:DEBUG:acme.client:Received response:
+HTTP 200
+Cache-Control: no-store
+Link: <https://prov-ca:9000/acme/hosts/directory>;rel="index"
+Replay-Nonce: dncxWEdzaUFtdFJUTE5vbmpFOTdGZnlJN0tQM1hHMTY
+Date: Wed, 28 Sep 2022 09:10:48 GMT
+
+
+2022-09-28 09:10:48,313:DEBUG:acme.client:Storing nonce: dncxWEdzaUFtdFJUTE5vbmpFOTdGZnlJN0tQM1hHMTY
+2022-09-28 09:10:48,313:DEBUG:acme.client:JWS payload:
+b'{\n  "contact": [\n    "mailto:auto-provision@899b1a8cc0c4"\n  ],\n  "termsOfServiceAgreed": true\n}'
+2022-09-28 09:10:48,314:DEBUG:acme.client:Sending POST request to https://prov-ca:9000/acme/hosts/new-account:
+{
+  "protected": "eyJhbGciOiAiUlMyNTYiLCAiandrIjogeyJuIjogInlGUEZCVGdLOVU4SDZFOWhXTHVtU2w2dWl0MFA3a09OZlVsVVp4Y0QxM2VuT1NSNm8yOGlRaUlNeHotdUpLOVdZQUVQdmw1TEpKVU5PM3NGYVV6TWVMNTNUOEVBdTZQdTNGc1NoYXVaTUR1MXVGSW52cXFBbk45Zl9wVmFmdDZwamJPSVVXMjdIUUxvUzFwYnpJM3h0Tkk5U3lzT3RFcHBiRHJwR2FsUzAtc1VYbVpmNGkybV9kaEtXQ2RrMWppbGtydWdacG5UX2xUYlQ3ODBQQTc5M0x6MDg4NHB1eF8xbDNueGV5VWNuLWkxY21CQmF6Tk9fcjlIS2pldWZNZjhTcEY3YUJCMnBYVTcxOWpyWjNBOG1yTkZTVU5keFQ3bWZLQU9BWG05dnNjbU9HYTF5OFVBRzQ0S3ZIRHZDRTAtNnBwVmthcGMwMlF3M19FUS1pUHdUdyIsICJlIjogIkFRQUIiLCAia3R5IjogIlJTQSJ9LCAibm9uY2UiOiAiZG5jeFdFZHphVUZ0ZEZKVVRFNXZibXBGT1RkR1pubEpOMHRRTTFoSE1UWSIsICJ1cmwiOiAiaHR0cHM6Ly9wcm92LWNhOjkwMDAvYWNtZS9ob3N0cy9uZXctYWNjb3VudCJ9",
+  "signature": "KMhhcW6OtM3kytOfQmFf5tJ4vgh23O5cajO7ns8Q_DU5_kBcytSJ7E5bGxQiaT49lge_6XJaOC5RHIpsWyAltkHYPMNdHFLfgRc_u8oQpvCfoS2d7iBQUjOLGnmBCyS74TMh3HOXMpXUgcCImDSqeFpv_1JxMEmGTJt9hb8lN7NvBITWxWcfZhGgpLI6HorxGN_JIZbY7kmqAyHwijRqlSnBQCs7IkcBsBAxZQ-dGsS6sGujsZvIosWGCGHDNyvZ1QGLy_zHKfL35LBYYK_eUtqX4RLWRsQUj95Q8E7GmC8R2NEdoK6N2i1W7fEgwXy-wQjOiDoNhhOXbjXmTfXK2w",
+  "payload": "ewogICJjb250YWN0IjogWwogICAgIm1haWx0bzphdXRvLXByb3Zpc2lvbkA4OTliMWE4Y2MwYzQiCiAgXSwKICAidGVybXNPZlNlcnZpY2VBZ3JlZWQiOiB0cnVlCn0"
+}
+2022-09-28 09:10:48,317:DEBUG:urllib3.connectionpool:https://prov-ca:9000 "POST /acme/hosts/new-account HTTP/1.1" 201 159
+2022-09-28 09:10:48,317:DEBUG:acme.client:Received response:
+HTTP 201
+Cache-Control: no-store
+Content-Type: application/json
+Link: <https://prov-ca:9000/acme/hosts/directory>;rel="index"
+Location: https://prov-ca:9000/acme/hosts/account/Hx0rNtry40Yr8tIwWa7zM1pfcl4ideeG
+Replay-Nonce: SnRqNG1DbUhJYXIxZ0VRYU1GY0pzNmg1eGhlcmRJWWo
+Date: Wed, 28 Sep 2022 09:10:48 GMT
+Content-Length: 159
+
+{"contact":["mailto:auto-provision@899b1a8cc0c4"],"status":"valid","orders":"https://prov-ca:9000/acme/hosts/account/Hx0rNtry40Yr8tIwWa7zM1pfcl4ideeG/orders"}
+
+2022-09-28 09:10:48,317:DEBUG:acme.client:Storing nonce: SnRqNG1DbUhJYXIxZ0VRYU1GY0pzNmg1eGhlcmRJWWo
+2022-09-28 09:10:48,318:DEBUG:certbot.display.util:Notifying user: Account registered.
+2022-09-28 09:10:48,318:DEBUG:certbot._internal.main:Picked account: <Account(RegistrationResource(body=Registration(key=None, contact=('mailto:auto-provision@899b1a8cc0c4',), agreement=None, status='valid', terms_of_service_agreed=None, only_return_existing=None, external_account_binding=None), uri='https://prov-ca:9000/acme/hosts/account/Hx0rNtry40Yr8tIwWa7zM1pfcl4ideeG', new_authzr_uri=None, terms_of_service=None), bba5fa3250d83ddf650bc47c6d2dd7cc, Meta(creation_dt=datetime.datetime(2022, 9, 28, 9, 10, 48, tzinfo=<UTC>), creation_host='899b1a8cc0c4', register_to_eff=None))>
+2022-09-28 09:10:48,319:DEBUG:certbot.display.util:Notifying user: Requesting a certificate for 'ds' and 899b1a8cc0c4
+2022-09-28 09:10:48,369:DEBUG:certbot.crypto_util:Generating RSA key (2048 bits): /etc/letsencrypt/keys/0000_key-certbot.pem
+2022-09-28 09:10:48,371:DEBUG:certbot.crypto_util:Creating CSR: /etc/letsencrypt/csr/0000_csr-certbot.pem
+2022-09-28 09:10:48,371:DEBUG:acme.client:JWS payload:
+b'{\n  "identifiers": [\n    {\n      "type": "dns",\n      "value": "\'ds\'"\n    },\n    {\n      "type": "dns",\n      "value": "899b1a8cc0c4"\n    }\n  ]\n}'
+2022-09-28 09:10:48,372:DEBUG:acme.client:Sending POST request to https://prov-ca:9000/acme/hosts/new-order:
+{
+  "protected": "eyJhbGciOiAiUlMyNTYiLCAia2lkIjogImh0dHBzOi8vcHJvdi1jYTo5MDAwL2FjbWUvaG9zdHMvYWNjb3VudC9IeDByTnRyeTQwWXI4dEl3V2E3ek0xcGZjbDRpZGVlRyIsICJub25jZSI6ICJTblJxTkcxRGJVaEpZWEl4WjBWUllVMUdZMHB6Tm1nMWVHaGxjbVJKV1dvIiwgInVybCI6ICJodHRwczovL3Byb3YtY2E6OTAwMC9hY21lL2hvc3RzL25ldy1vcmRlciJ9",
+  "signature": "nb1h--Q696ysX0FaBJXvHqCjBMvQASmeH2RoJlnkSF8Iq3QIyh-QTX66EQerBUwl-oUFyP8INDO1a931kLVX-wvAdNDyny9XDfVKfWy207GLtyz5Kl5Q5jOyabe0pI2Z0-e2vB9nHZs-DtJSN2Mq46WBuLfn_iXvPecSqpBJMY49X5llsGRbTKxRfJ653ivhF4pa3bKdV34pwN3kp8epk_cFDV-_yopnwZ5y7C5oVecI6lQ1TNPTDqsXl6_mOjP3Rf6mbmb_J3mxxMY2_cNoL-A8sJI0M9BpfPWUlO7NJRSv5VHoRAFxyUAVD8HGGv3B6wb0n6_cfKx0bPPftZ0YYA",
+  "payload": "ewogICJpZGVudGlmaWVycyI6IFsKICAgIHsKICAgICAgInR5cGUiOiAiZG5zIiwKICAgICAgInZhbHVlIjogIidkcyciCiAgICB9LAogICAgewogICAgICAidHlwZSI6ICJkbnMiLAogICAgICAidmFsdWUiOiAiODk5YjFhOGNjMGM0IgogICAgfQogIF0KfQ"
+}
+2022-09-28 09:10:48,375:DEBUG:urllib3.connectionpool:https://prov-ca:9000 "POST /acme/hosts/new-order HTTP/1.1" 400 93
+2022-09-28 09:10:48,375:DEBUG:acme.client:Received response:
+HTTP 400
+Cache-Control: no-store
+Content-Type: application/problem+json
+Link: <https://prov-ca:9000/acme/hosts/directory>;rel="index"
+Replay-Nonce: bUNWN3lHS01SOGd2RHlDUDd5enFEeEdNSDJzMGRzaGw
+Date: Wed, 28 Sep 2022 09:10:48 GMT
+Content-Length: 93
+
+{"type":"urn:ietf:params:acme:error:malformed","detail":"The request message was malformed"}
+
+2022-09-28 09:10:48,375:DEBUG:certbot._internal.log:Exiting abnormally:
+Traceback (most recent call last):
+  File "/usr/bin/certbot", line 33, in <module>
+    sys.exit(load_entry_point('certbot==1.12.0', 'console_scripts', 'certbot')())
+  File "/usr/lib/python3/dist-packages/certbot/main.py", line 15, in main
+    return internal_main.main(cli_args)
+  File "/usr/lib/python3/dist-packages/certbot/_internal/main.py", line 1413, in main
+    return config.func(config, plugins)
+  File "/usr/lib/python3/dist-packages/certbot/_internal/main.py", line 1293, in certonly
+    lineage = _get_and_save_cert(le_client, config, domains, certname, lineage)
+  File "/usr/lib/python3/dist-packages/certbot/_internal/main.py", line 134, in _get_and_save_cert
+    lineage = le_client.obtain_and_enroll_certificate(domains, certname)
+  File "/usr/lib/python3/dist-packages/certbot/_internal/client.py", line 441, in obtain_and_enroll_certificate
+    cert, chain, key, _ = self.obtain_certificate(domains)
+  File "/usr/lib/python3/dist-packages/certbot/_internal/client.py", line 374, in obtain_certificate
+    orderr = self._get_order_and_authorizations(csr.data, self.config.allow_subset_of_names)
+  File "/usr/lib/python3/dist-packages/certbot/_internal/client.py", line 406, in _get_order_and_authorizations
+    orderr = self.acme.new_order(csr_pem)
+  File "/usr/lib/python3/dist-packages/acme/client.py", line 886, in new_order
+    return self.client.new_order(csr_pem)
+  File "/usr/lib/python3/dist-packages/acme/client.py", line 668, in new_order
+    response = self._post(self.directory['newOrder'], order)
+  File "/usr/lib/python3/dist-packages/acme/client.py", line 97, in _post
+    return self.net.post(*args, **kwargs)
+  File "/usr/lib/python3/dist-packages/acme/client.py", line 1201, in post
+    return self._post_once(*args, **kwargs)
+  File "/usr/lib/python3/dist-packages/acme/client.py", line 1214, in _post_once
+    response = self._check_response(response, content_type=content_type)
+  File "/usr/lib/python3/dist-packages/acme/client.py", line 1072, in _check_response
+    raise messages.Error.from_json(jobj)
+acme.messages.Error: urn:ietf:params:acme:error:malformed :: The request message was malformed :: The request message was malformed
+2022-09-28 09:10:48,377:ERROR:certbot._internal.log:An unexpected error occurred:
+2022-09-28 09:10:48,377:ERROR:certbot._internal.log:The request message was malformed :: The request message was malformed
+2022-09-28 09:10:49,046:DEBUG:certbot._internal.main:certbot version: 1.12.0
+2022-09-28 09:10:49,046:DEBUG:certbot._internal.main:Location of certbot entry point: /usr/bin/certbot
+2022-09-28 09:10:49,046:DEBUG:certbot._internal.main:Arguments: ['-n', '--standalone', '--server', 'https://prov-ca:9000/acme/hosts/directory', '--cert-name', 'auto-provisioned', '--non-interactive', '--agree-tos', '--email', 'auto-provision@899b1a8cc0c4', '-d', "'ds'", '-d', '899b1a8cc0c4']
+2022-09-28 09:10:49,046:DEBUG:certbot._internal.main:Discovered plugins: PluginsRegistry(PluginEntryPoint#manual,PluginEntryPoint#null,PluginEntryPoint#standalone,PluginEntryPoint#webroot)
+2022-09-28 09:10:49,049:DEBUG:certbot._internal.log:Root logging level set at 20
+2022-09-28 09:10:49,049:INFO:certbot._internal.log:Saving debug log to /var/log/letsencrypt/letsencrypt.log
+2022-09-28 09:10:49,049:DEBUG:certbot._internal.plugins.selection:Requested authenticator standalone and installer None
+2022-09-28 09:10:49,049:DEBUG:certbot._internal.plugins.selection:Single candidate plugin: * standalone
+Description: Spin up a temporary webserver
+Interfaces: IAuthenticator, IPlugin
+Entry point: standalone = certbot._internal.plugins.standalone:Authenticator
+Initialized: <certbot._internal.plugins.standalone.Authenticator object at 0xffffb7a2fa60>
+Prep: True
+2022-09-28 09:10:49,049:DEBUG:certbot._internal.plugins.selection:Selected authenticator <certbot._internal.plugins.standalone.Authenticator object at 0xffffb7a2fa60> and installer None
+2022-09-28 09:10:49,049:INFO:certbot._internal.plugins.selection:Plugins selected: Authenticator standalone, Installer None
+2022-09-28 09:10:49,053:DEBUG:certbot._internal.main:Picked account: <Account(RegistrationResource(body=Registration(key=None, contact=(), agreement=None, status=None, terms_of_service_agreed=None, only_return_existing=None, external_account_binding=None), uri='https://prov-ca:9000/acme/hosts/account/Hx0rNtry40Yr8tIwWa7zM1pfcl4ideeG', new_authzr_uri=None, terms_of_service=None), bba5fa3250d83ddf650bc47c6d2dd7cc, Meta(creation_dt=datetime.datetime(2022, 9, 28, 9, 10, 48, tzinfo=<UTC>), creation_host='899b1a8cc0c4', register_to_eff=None))>
+2022-09-28 09:10:49,054:DEBUG:acme.client:Sending GET request to https://prov-ca:9000/acme/hosts/directory.
+2022-09-28 09:10:49,054:DEBUG:urllib3.connectionpool:Starting new HTTPS connection (1): prov-ca:9000
+2022-09-28 09:10:49,059:DEBUG:urllib3.connectionpool:https://prov-ca:9000 "GET /acme/hosts/directory HTTP/1.1" 200 297
+2022-09-28 09:10:49,060:DEBUG:acme.client:Received response:
+HTTP 200
+Content-Type: application/json
+Date: Wed, 28 Sep 2022 09:10:49 GMT
+Content-Length: 297
+
+{"newNonce":"https://prov-ca:9000/acme/hosts/new-nonce","newAccount":"https://prov-ca:9000/acme/hosts/new-account","newOrder":"https://prov-ca:9000/acme/hosts/new-order","revokeCert":"https://prov-ca:9000/acme/hosts/revoke-cert","keyChange":"https://prov-ca:9000/acme/hosts/key-change","meta":{}}
+
+2022-09-28 09:10:49,060:DEBUG:certbot.display.util:Notifying user: Requesting a certificate for 'ds' and 899b1a8cc0c4
+2022-09-28 09:10:49,107:DEBUG:certbot.crypto_util:Generating RSA key (2048 bits): /etc/letsencrypt/keys/0001_key-certbot.pem
+2022-09-28 09:10:49,108:DEBUG:certbot.crypto_util:Creating CSR: /etc/letsencrypt/csr/0001_csr-certbot.pem
+2022-09-28 09:10:49,109:DEBUG:acme.client:Requesting fresh nonce
+2022-09-28 09:10:49,109:DEBUG:acme.client:Sending HEAD request to https://prov-ca:9000/acme/hosts/new-nonce.
+2022-09-28 09:10:49,110:DEBUG:urllib3.connectionpool:https://prov-ca:9000 "HEAD /acme/hosts/new-nonce HTTP/1.1" 200 0
+2022-09-28 09:10:49,110:DEBUG:acme.client:Received response:
+HTTP 200
+Cache-Control: no-store
+Link: <https://prov-ca:9000/acme/hosts/directory>;rel="index"
+Replay-Nonce: Q2V2d1FyNk5CNUFFZUVERDRqZ0MzaWFBRUN0cTNWODQ
+Date: Wed, 28 Sep 2022 09:10:49 GMT
+
+
+2022-09-28 09:10:49,110:DEBUG:acme.client:Storing nonce: Q2V2d1FyNk5CNUFFZUVERDRqZ0MzaWFBRUN0cTNWODQ
+2022-09-28 09:10:49,111:DEBUG:acme.client:JWS payload:
+b'{\n  "identifiers": [\n    {\n      "type": "dns",\n      "value": "\'ds\'"\n    },\n    {\n      "type": "dns",\n      "value": "899b1a8cc0c4"\n    }\n  ]\n}'
+2022-09-28 09:10:49,111:DEBUG:acme.client:Sending POST request to https://prov-ca:9000/acme/hosts/new-order:
+{
+  "protected": "eyJhbGciOiAiUlMyNTYiLCAia2lkIjogImh0dHBzOi8vcHJvdi1jYTo5MDAwL2FjbWUvaG9zdHMvYWNjb3VudC9IeDByTnRyeTQwWXI4dEl3V2E3ek0xcGZjbDRpZGVlRyIsICJub25jZSI6ICJRMlYyZDFGeU5rNUNOVUZGWlVWRVJEUnFaME16YVdGQlJVTjBjVE5XT0RRIiwgInVybCI6ICJodHRwczovL3Byb3YtY2E6OTAwMC9hY21lL2hvc3RzL25ldy1vcmRlciJ9",
+  "signature": "f_F7XFxPsIPCvpAytpoOhqxwAnMd0sK497-hTkyuCemaETTLLg-KNkRn68F6FHS-eBWAUTWd43XFxkCGxyHSCFDPQ-7FSwSuCrXAt5rJlTcLpTka0uzbxqpowimb6eK9jqhLhlkzmXuTNj2vfWjv0ag9OcLz99-DJhi6eMiiZfmDGkR66fZzqcvYzBIWjnYvdrznVT5Shzt5KfaMhyEQKV_IdMStYfGgNDPkLz8PikAtcQEq9C2INra5wPp3437d4JtUu9sy7E6SwbMpfWK_3YjbBCmaEw9_OMevN7tQ2NQfN8pTsIjIr5SdYYSwCf_ja7y5m55bqKjG6zDfaVfiCQ",
+  "payload": "ewogICJpZGVudGlmaWVycyI6IFsKICAgIHsKICAgICAgInR5cGUiOiAiZG5zIiwKICAgICAgInZhbHVlIjogIidkcyciCiAgICB9LAogICAgewogICAgICAidHlwZSI6ICJkbnMiLAogICAgICAidmFsdWUiOiAiODk5YjFhOGNjMGM0IgogICAgfQogIF0KfQ"
+}
+2022-09-28 09:10:49,113:DEBUG:urllib3.connectionpool:https://prov-ca:9000 "POST /acme/hosts/new-order HTTP/1.1" 400 93
+2022-09-28 09:10:49,113:DEBUG:acme.client:Received response:
+HTTP 400
+Cache-Control: no-store
+Content-Type: application/problem+json
+Link: <https://prov-ca:9000/acme/hosts/directory>;rel="index"
+Replay-Nonce: VnYwZEd3RFNJdkJLb1pQbk01TGhZYlcwbGZrREZZRFA
+Date: Wed, 28 Sep 2022 09:10:49 GMT
+Content-Length: 93
+
+{"type":"urn:ietf:params:acme:error:malformed","detail":"The request message was malformed"}
+
+2022-09-28 09:10:49,113:DEBUG:certbot._internal.log:Exiting abnormally:
+Traceback (most recent call last):
+  File "/usr/bin/certbot", line 33, in <module>
+    sys.exit(load_entry_point('certbot==1.12.0', 'console_scripts', 'certbot')())
+  File "/usr/lib/python3/dist-packages/certbot/main.py", line 15, in main
+    return internal_main.main(cli_args)
+  File "/usr/lib/python3/dist-packages/certbot/_internal/main.py", line 1413, in main
+    return config.func(config, plugins)
+  File "/usr/lib/python3/dist-packages/certbot/_internal/main.py", line 1293, in certonly
+    lineage = _get_and_save_cert(le_client, config, domains, certname, lineage)
+  File "/usr/lib/python3/dist-packages/certbot/_internal/main.py", line 134, in _get_and_save_cert
+    lineage = le_client.obtain_and_enroll_certificate(domains, certname)
+  File "/usr/lib/python3/dist-packages/certbot/_internal/client.py", line 441, in obtain_and_enroll_certificate
+    cert, chain, key, _ = self.obtain_certificate(domains)
+  File "/usr/lib/python3/dist-packages/certbot/_internal/client.py", line 374, in obtain_certificate
+    orderr = self._get_order_and_authorizations(csr.data, self.config.allow_subset_of_names)
+  File "/usr/lib/python3/dist-packages/certbot/_internal/client.py", line 406, in _get_order_and_authorizations
+    orderr = self.acme.new_order(csr_pem)
+  File "/usr/lib/python3/dist-packages/acme/client.py", line 886, in new_order
+    return self.client.new_order(csr_pem)
+  File "/usr/lib/python3/dist-packages/acme/client.py", line 668, in new_order
+    response = self._post(self.directory['newOrder'], order)
+  File "/usr/lib/python3/dist-packages/acme/client.py", line 97, in _post
+    return self.net.post(*args, **kwargs)
+  File "/usr/lib/python3/dist-packages/acme/client.py", line 1201, in post
+    return self._post_once(*args, **kwargs)
+  File "/usr/lib/python3/dist-packages/acme/client.py", line 1214, in _post_once
+    response = self._check_response(response, content_type=content_type)
+  File "/usr/lib/python3/dist-packages/acme/client.py", line 1072, in _check_response
+    raise messages.Error.from_json(jobj)
+acme.messages.Error: urn:ietf:params:acme:error:malformed :: The request message was malformed :: The request message was malformed
+2022-09-28 09:10:49,114:ERROR:certbot._internal.log:An unexpected error occurred:
+2022-09-28 09:10:49,114:ERROR:certbot._internal.log:The request message was malformed :: The request message was malformed
+2022-09-28 09:10:49,831:DEBUG:certbot._internal.main:certbot version: 1.12.0
+2022-09-28 09:10:49,831:DEBUG:certbot._internal.main:Location of certbot entry point: /usr/bin/certbot
+2022-09-28 09:10:49,831:DEBUG:certbot._internal.main:Arguments: ['-n', '--standalone', '--server', 'https://prov-ca:9000/acme/hosts/directory', '--cert-name', 'auto-provisioned', '--non-interactive', '--agree-tos', '--email', 'auto-provision@899b1a8cc0c4', '-d', "'ds'", '-d', '899b1a8cc0c4']
+2022-09-28 09:10:49,831:DEBUG:certbot._internal.main:Discovered plugins: PluginsRegistry(PluginEntryPoint#manual,PluginEntryPoint#null,PluginEntryPoint#standalone,PluginEntryPoint#webroot)
+2022-09-28 09:10:49,834:DEBUG:certbot._internal.log:Root logging level set at 20
+2022-09-28 09:10:49,834:INFO:certbot._internal.log:Saving debug log to /var/log/letsencrypt/letsencrypt.log
+2022-09-28 09:10:49,834:DEBUG:certbot._internal.plugins.selection:Requested authenticator standalone and installer None
+2022-09-28 09:10:49,834:DEBUG:certbot._internal.plugins.selection:Single candidate plugin: * standalone
+Description: Spin up a temporary webserver
+Interfaces: IAuthenticator, IPlugin
+Entry point: standalone = certbot._internal.plugins.standalone:Authenticator
+Initialized: <certbot._internal.plugins.standalone.Authenticator object at 0xffffa22619a0>
+Prep: True
+2022-09-28 09:10:49,834:DEBUG:certbot._internal.plugins.selection:Selected authenticator <certbot._internal.plugins.standalone.Authenticator object at 0xffffa22619a0> and installer None
+2022-09-28 09:10:49,834:INFO:certbot._internal.plugins.selection:Plugins selected: Authenticator standalone, Installer None
+2022-09-28 09:10:49,838:DEBUG:certbot._internal.main:Picked account: <Account(RegistrationResource(body=Registration(key=None, contact=(), agreement=None, status=None, terms_of_service_agreed=None, only_return_existing=None, external_account_binding=None), uri='https://prov-ca:9000/acme/hosts/account/Hx0rNtry40Yr8tIwWa7zM1pfcl4ideeG', new_authzr_uri=None, terms_of_service=None), bba5fa3250d83ddf650bc47c6d2dd7cc, Meta(creation_dt=datetime.datetime(2022, 9, 28, 9, 10, 48, tzinfo=<UTC>), creation_host='899b1a8cc0c4', register_to_eff=None))>
+2022-09-28 09:10:49,838:DEBUG:acme.client:Sending GET request to https://prov-ca:9000/acme/hosts/directory.
+2022-09-28 09:10:49,839:DEBUG:urllib3.connectionpool:Starting new HTTPS connection (1): prov-ca:9000
+2022-09-28 09:10:49,844:DEBUG:urllib3.connectionpool:https://prov-ca:9000 "GET /acme/hosts/directory HTTP/1.1" 200 297
+2022-09-28 09:10:49,844:DEBUG:acme.client:Received response:
+HTTP 200
+Content-Type: application/json
+Date: Wed, 28 Sep 2022 09:10:49 GMT
+Content-Length: 297
+
+{"newNonce":"https://prov-ca:9000/acme/hosts/new-nonce","newAccount":"https://prov-ca:9000/acme/hosts/new-account","newOrder":"https://prov-ca:9000/acme/hosts/new-order","revokeCert":"https://prov-ca:9000/acme/hosts/revoke-cert","keyChange":"https://prov-ca:9000/acme/hosts/key-change","meta":{}}
+
+2022-09-28 09:10:49,845:DEBUG:certbot.display.util:Notifying user: Requesting a certificate for 'ds' and 899b1a8cc0c4
+2022-09-28 09:10:49,872:DEBUG:certbot.crypto_util:Generating RSA key (2048 bits): /etc/letsencrypt/keys/0002_key-certbot.pem
+2022-09-28 09:10:49,873:DEBUG:certbot.crypto_util:Creating CSR: /etc/letsencrypt/csr/0002_csr-certbot.pem
+2022-09-28 09:10:49,873:DEBUG:acme.client:Requesting fresh nonce
+2022-09-28 09:10:49,873:DEBUG:acme.client:Sending HEAD request to https://prov-ca:9000/acme/hosts/new-nonce.
+2022-09-28 09:10:49,876:DEBUG:urllib3.connectionpool:https://prov-ca:9000 "HEAD /acme/hosts/new-nonce HTTP/1.1" 200 0
+2022-09-28 09:10:49,876:DEBUG:acme.client:Received response:
+HTTP 200
+Cache-Control: no-store
+Link: <https://prov-ca:9000/acme/hosts/directory>;rel="index"
+Replay-Nonce: bXZEZjV4NVA4SkVwRzJFeHB4NkJaRDhEbHhTTDlzbE0
+Date: Wed, 28 Sep 2022 09:10:49 GMT
+
+
+2022-09-28 09:10:49,876:DEBUG:acme.client:Storing nonce: bXZEZjV4NVA4SkVwRzJFeHB4NkJaRDhEbHhTTDlzbE0
+2022-09-28 09:10:49,876:DEBUG:acme.client:JWS payload:
+b'{\n  "identifiers": [\n    {\n      "type": "dns",\n      "value": "\'ds\'"\n    },\n    {\n      "type": "dns",\n      "value": "899b1a8cc0c4"\n    }\n  ]\n}'
+2022-09-28 09:10:49,877:DEBUG:acme.client:Sending POST request to https://prov-ca:9000/acme/hosts/new-order:
+{
+  "protected": "eyJhbGciOiAiUlMyNTYiLCAia2lkIjogImh0dHBzOi8vcHJvdi1jYTo5MDAwL2FjbWUvaG9zdHMvYWNjb3VudC9IeDByTnRyeTQwWXI4dEl3V2E3ek0xcGZjbDRpZGVlRyIsICJub25jZSI6ICJiWFpFWmpWNE5WQTRTa1Z3UnpKRmVIQjROa0phUkRoRWJIaFRURGx6YkUwIiwgInVybCI6ICJodHRwczovL3Byb3YtY2E6OTAwMC9hY21lL2hvc3RzL25ldy1vcmRlciJ9",
+  "signature": "SN3Zx9LxeHrzfoOyulC2dDiwqMz23cmBvAJPc8GOuzTHLmopgG26GsHeqX0e9sZUOcf4ovGwQw_upDmQOPX2vJjEEpGcn4wLd1_lMgmopSc9-4JK8LuVLCyPYNq9lO-2HllfX6pUar59g84n-_oB6LoVmX-wQLOgMaoKDTeRynXiZvAGtKdDc_5OneA0dncu_9WP-yVZY6kOuQTddL344u-eE-GDpXIjYRdcPDfcolhcmlhdD1tr7PI2UBrSzLHHVecLibdQVEwoJ-_3KygIDcy5Bg1o4SxIAdx9c0Jg9LtiZWB-_kWUlctYne1_wWIZ-qvyKZ4I7yPd1hMUOwb49w",
+  "payload": "ewogICJpZGVudGlmaWVycyI6IFsKICAgIHsKICAgICAgInR5cGUiOiAiZG5zIiwKICAgICAgInZhbHVlIjogIidkcyciCiAgICB9LAogICAgewogICAgICAidHlwZSI6ICJkbnMiLAogICAgICAidmFsdWUiOiAiODk5YjFhOGNjMGM0IgogICAgfQogIF0KfQ"
+}
+2022-09-28 09:10:49,878:DEBUG:urllib3.connectionpool:https://prov-ca:9000 "POST /acme/hosts/new-order HTTP/1.1" 400 93
+2022-09-28 09:10:49,879:DEBUG:acme.client:Received response:
+HTTP 400
+Cache-Control: no-store
+Content-Type: application/problem+json
+Link: <https://prov-ca:9000/acme/hosts/directory>;rel="index"
+Replay-Nonce: VWprMzFGcFViZWZlS3I4VHRyZ1dwMVduNEpXNXQwQ2k
+Date: Wed, 28 Sep 2022 09:10:49 GMT
+Content-Length: 93
+
+{"type":"urn:ietf:params:acme:error:malformed","detail":"The request message was malformed"}
+
+2022-09-28 09:10:49,879:DEBUG:certbot._internal.log:Exiting abnormally:
+Traceback (most recent call last):
+  File "/usr/bin/certbot", line 33, in <module>
+    sys.exit(load_entry_point('certbot==1.12.0', 'console_scripts', 'certbot')())
+  File "/usr/lib/python3/dist-packages/certbot/main.py", line 15, in main
+    return internal_main.main(cli_args)
+  File "/usr/lib/python3/dist-packages/certbot/_internal/main.py", line 1413, in main
+    return config.func(config, plugins)
+  File "/usr/lib/python3/dist-packages/certbot/_internal/main.py", line 1293, in certonly
+    lineage = _get_and_save_cert(le_client, config, domains, certname, lineage)
+  File "/usr/lib/python3/dist-packages/certbot/_internal/main.py", line 134, in _get_and_save_cert
+    lineage = le_client.obtain_and_enroll_certificate(domains, certname)
+  File "/usr/lib/python3/dist-packages/certbot/_internal/client.py", line 441, in obtain_and_enroll_certificate
+    cert, chain, key, _ = self.obtain_certificate(domains)
+  File "/usr/lib/python3/dist-packages/certbot/_internal/client.py", line 374, in obtain_certificate
+    orderr = self._get_order_and_authorizations(csr.data, self.config.allow_subset_of_names)
+  File "/usr/lib/python3/dist-packages/certbot/_internal/client.py", line 406, in _get_order_and_authorizations
+    orderr = self.acme.new_order(csr_pem)
+  File "/usr/lib/python3/dist-packages/acme/client.py", line 886, in new_order
+    return self.client.new_order(csr_pem)
+  File "/usr/lib/python3/dist-packages/acme/client.py", line 668, in new_order
+    response = self._post(self.directory['newOrder'], order)
+  File "/usr/lib/python3/dist-packages/acme/client.py", line 97, in _post
+    return self.net.post(*args, **kwargs)
+  File "/usr/lib/python3/dist-packages/acme/client.py", line 1201, in post
+    return self._post_once(*args, **kwargs)
+  File "/usr/lib/python3/dist-packages/acme/client.py", line 1214, in _post_once
+    response = self._check_response(response, content_type=content_type)
+  File "/usr/lib/python3/dist-packages/acme/client.py", line 1072, in _check_response
+    raise messages.Error.from_json(jobj)
+acme.messages.Error: urn:ietf:params:acme:error:malformed :: The request message was malformed :: The request message was malformed
+2022-09-28 09:10:49,879:ERROR:certbot._internal.log:An unexpected error occurred:
+2022-09-28 09:10:49,879:ERROR:certbot._internal.log:The request message was malformed :: The request message was malformed
+2022-09-28 09:10:50,877:DEBUG:certbot._internal.main:certbot version: 1.12.0
+2022-09-28 09:10:50,877:DEBUG:certbot._internal.main:Location of certbot entry point: /usr/bin/certbot
+2022-09-28 09:10:50,877:DEBUG:certbot._internal.main:Arguments: ['-n', '--standalone', '--server', 'https://prov-ca:9000/acme/hosts/directory', '--cert-name', 'auto-provisioned', '--non-interactive', '--agree-tos', '--email', 'auto-provision@899b1a8cc0c4', '-d', "'ds'", '-d', '899b1a8cc0c4']
+2022-09-28 09:10:50,877:DEBUG:certbot._internal.main:Discovered plugins: PluginsRegistry(PluginEntryPoint#manual,PluginEntryPoint#null,PluginEntryPoint#standalone,PluginEntryPoint#webroot)
+2022-09-28 09:10:50,880:DEBUG:certbot._internal.log:Root logging level set at 20
+2022-09-28 09:10:50,880:INFO:certbot._internal.log:Saving debug log to /var/log/letsencrypt/letsencrypt.log
+2022-09-28 09:10:50,881:DEBUG:certbot._internal.plugins.selection:Requested authenticator standalone and installer None
+2022-09-28 09:10:50,881:DEBUG:certbot._internal.plugins.selection:Single candidate plugin: * standalone
+Description: Spin up a temporary webserver
+Interfaces: IAuthenticator, IPlugin
+Entry point: standalone = certbot._internal.plugins.standalone:Authenticator
+Initialized: <certbot._internal.plugins.standalone.Authenticator object at 0xffffa1f259a0>
+Prep: True
+2022-09-28 09:10:50,881:DEBUG:certbot._internal.plugins.selection:Selected authenticator <certbot._internal.plugins.standalone.Authenticator object at 0xffffa1f259a0> and installer None
+2022-09-28 09:10:50,881:INFO:certbot._internal.plugins.selection:Plugins selected: Authenticator standalone, Installer None
+2022-09-28 09:10:50,886:DEBUG:certbot._internal.main:Picked account: <Account(RegistrationResource(body=Registration(key=None, contact=(), agreement=None, status=None, terms_of_service_agreed=None, only_return_existing=None, external_account_binding=None), uri='https://prov-ca:9000/acme/hosts/account/Hx0rNtry40Yr8tIwWa7zM1pfcl4ideeG', new_authzr_uri=None, terms_of_service=None), bba5fa3250d83ddf650bc47c6d2dd7cc, Meta(creation_dt=datetime.datetime(2022, 9, 28, 9, 10, 48, tzinfo=<UTC>), creation_host='899b1a8cc0c4', register_to_eff=None))>
+2022-09-28 09:10:50,886:DEBUG:acme.client:Sending GET request to https://prov-ca:9000/acme/hosts/directory.
+2022-09-28 09:10:50,887:DEBUG:urllib3.connectionpool:Starting new HTTPS connection (1): prov-ca:9000
+2022-09-28 09:10:50,893:DEBUG:urllib3.connectionpool:https://prov-ca:9000 "GET /acme/hosts/directory HTTP/1.1" 200 297
+2022-09-28 09:10:50,893:DEBUG:acme.client:Received response:
+HTTP 200
+Content-Type: application/json
+Date: Wed, 28 Sep 2022 09:10:50 GMT
+Content-Length: 297
+
+{"newNonce":"https://prov-ca:9000/acme/hosts/new-nonce","newAccount":"https://prov-ca:9000/acme/hosts/new-account","newOrder":"https://prov-ca:9000/acme/hosts/new-order","revokeCert":"https://prov-ca:9000/acme/hosts/revoke-cert","keyChange":"https://prov-ca:9000/acme/hosts/key-change","meta":{}}
+
+2022-09-28 09:10:50,893:DEBUG:certbot.display.util:Notifying user: Requesting a certificate for 'ds' and 899b1a8cc0c4
+2022-09-28 09:10:50,918:DEBUG:certbot.crypto_util:Generating RSA key (2048 bits): /etc/letsencrypt/keys/0003_key-certbot.pem
+2022-09-28 09:10:50,920:DEBUG:certbot.crypto_util:Creating CSR: /etc/letsencrypt/csr/0003_csr-certbot.pem
+2022-09-28 09:10:50,920:DEBUG:acme.client:Requesting fresh nonce
+2022-09-28 09:10:50,920:DEBUG:acme.client:Sending HEAD request to https://prov-ca:9000/acme/hosts/new-nonce.
+2022-09-28 09:10:50,922:DEBUG:urllib3.connectionpool:https://prov-ca:9000 "HEAD /acme/hosts/new-nonce HTTP/1.1" 200 0
+2022-09-28 09:10:50,922:DEBUG:acme.client:Received response:
+HTTP 200
+Cache-Control: no-store
+Link: <https://prov-ca:9000/acme/hosts/directory>;rel="index"
+Replay-Nonce: S0N2N1o5NURiMlViTzVwQ3Rkelk2T0Q1T001MWVxa1M
+Date: Wed, 28 Sep 2022 09:10:50 GMT
+
+
+2022-09-28 09:10:50,922:DEBUG:acme.client:Storing nonce: S0N2N1o5NURiMlViTzVwQ3Rkelk2T0Q1T001MWVxa1M
+2022-09-28 09:10:50,922:DEBUG:acme.client:JWS payload:
+b'{\n  "identifiers": [\n    {\n      "type": "dns",\n      "value": "\'ds\'"\n    },\n    {\n      "type": "dns",\n      "value": "899b1a8cc0c4"\n    }\n  ]\n}'
+2022-09-28 09:10:50,923:DEBUG:acme.client:Sending POST request to https://prov-ca:9000/acme/hosts/new-order:
+{
+  "protected": "eyJhbGciOiAiUlMyNTYiLCAia2lkIjogImh0dHBzOi8vcHJvdi1jYTo5MDAwL2FjbWUvaG9zdHMvYWNjb3VudC9IeDByTnRyeTQwWXI4dEl3V2E3ek0xcGZjbDRpZGVlRyIsICJub25jZSI6ICJTME4yTjFvNU5VUmlNbFZpVHpWd1EzUmtlbGsyVDBRMVQwMDFNV1Z4YTFNIiwgInVybCI6ICJodHRwczovL3Byb3YtY2E6OTAwMC9hY21lL2hvc3RzL25ldy1vcmRlciJ9",
+  "signature": "B99lAV5QGFmG4YbM1lDcG-nCVRWHMdiGzC9vRUY4ohWFM8xHzz1bx0kpkcUnd0wNjhvFkSSGZhMizPxMCTcxdUhH8TXlea5FxgDF69k0L_kT7bkEW93I0TzyDKSeJu4qgXYRP189yV0EpqcMUAZutOjFcQOwM8pnKvd96zYu5nDAEkOqk_q9n35u7ROkLBj6migHEkKXEiOhO-6HMy6UmRPZqkBvcbQRFQQQUQeHLkgpnQ1RmnUoy9PsmtFUnDdSHBjjjMfG0HoMDIeDtkkGsHp8cq-8Mj0lLqdUMOwEjZE-mUuTaTbvRHyUs-8KC1p_GlzWsvPttpWxURgK2g8MzQ",
+  "payload": "ewogICJpZGVudGlmaWVycyI6IFsKICAgIHsKICAgICAgInR5cGUiOiAiZG5zIiwKICAgICAgInZhbHVlIjogIidkcyciCiAgICB9LAogICAgewogICAgICAidHlwZSI6ICJkbnMiLAogICAgICAidmFsdWUiOiAiODk5YjFhOGNjMGM0IgogICAgfQogIF0KfQ"
+}
+2022-09-28 09:10:50,925:DEBUG:urllib3.connectionpool:https://prov-ca:9000 "POST /acme/hosts/new-order HTTP/1.1" 400 93
+2022-09-28 09:10:50,925:DEBUG:acme.client:Received response:
+HTTP 400
+Cache-Control: no-store
+Content-Type: application/problem+json
+Link: <https://prov-ca:9000/acme/hosts/directory>;rel="index"
+Replay-Nonce: NGRReXNBaFVhVjZpMTc0Qkx4Rnk3ZG85V2lEbzlaaFY
+Date: Wed, 28 Sep 2022 09:10:50 GMT
+Content-Length: 93
+
+{"type":"urn:ietf:params:acme:error:malformed","detail":"The request message was malformed"}
+
+2022-09-28 09:10:50,925:DEBUG:certbot._internal.log:Exiting abnormally:
+Traceback (most recent call last):
+  File "/usr/bin/certbot", line 33, in <module>
+    sys.exit(load_entry_point('certbot==1.12.0', 'console_scripts', 'certbot')())
+  File "/usr/lib/python3/dist-packages/certbot/main.py", line 15, in main
+    return internal_main.main(cli_args)
+  File "/usr/lib/python3/dist-packages/certbot/_internal/main.py", line 1413, in main
+    return config.func(config, plugins)
+  File "/usr/lib/python3/dist-packages/certbot/_internal/main.py", line 1293, in certonly
+    lineage = _get_and_save_cert(le_client, config, domains, certname, lineage)
+  File "/usr/lib/python3/dist-packages/certbot/_internal/main.py", line 134, in _get_and_save_cert
+    lineage = le_client.obtain_and_enroll_certificate(domains, certname)
+  File "/usr/lib/python3/dist-packages/certbot/_internal/client.py", line 441, in obtain_and_enroll_certificate
+    cert, chain, key, _ = self.obtain_certificate(domains)
+  File "/usr/lib/python3/dist-packages/certbot/_internal/client.py", line 374, in obtain_certificate
+    orderr = self._get_order_and_authorizations(csr.data, self.config.allow_subset_of_names)
+  File "/usr/lib/python3/dist-packages/certbot/_internal/client.py", line 406, in _get_order_and_authorizations
+    orderr = self.acme.new_order(csr_pem)
+  File "/usr/lib/python3/dist-packages/acme/client.py", line 886, in new_order
+    return self.client.new_order(csr_pem)
+  File "/usr/lib/python3/dist-packages/acme/client.py", line 668, in new_order
+    response = self._post(self.directory['newOrder'], order)
+  File "/usr/lib/python3/dist-packages/acme/client.py", line 97, in _post
+    return self.net.post(*args, **kwargs)
+  File "/usr/lib/python3/dist-packages/acme/client.py", line 1201, in post
+    return self._post_once(*args, **kwargs)
+  File "/usr/lib/python3/dist-packages/acme/client.py", line 1214, in _post_once
+    response = self._check_response(response, content_type=content_type)
+  File "/usr/lib/python3/dist-packages/acme/client.py", line 1072, in _check_response
+    raise messages.Error.from_json(jobj)
+acme.messages.Error: urn:ietf:params:acme:error:malformed :: The request message was malformed :: The request message was malformed
+2022-09-28 09:10:50,925:ERROR:certbot._internal.log:An unexpected error occurred:
+2022-09-28 09:10:50,925:ERROR:certbot._internal.log:The request message was malformed :: The request message was malformed
+2022-09-28 09:10:52,292:DEBUG:certbot._internal.main:certbot version: 1.12.0
+2022-09-28 09:10:52,293:DEBUG:certbot._internal.main:Location of certbot entry point: /usr/bin/certbot
+2022-09-28 09:10:52,293:DEBUG:certbot._internal.main:Arguments: ['-n', '--standalone', '--server', 'https://prov-ca:9000/acme/hosts/directory', '--cert-name', 'auto-provisioned', '--non-interactive', '--agree-tos', '--email', 'auto-provision@899b1a8cc0c4', '-d', "'ds'", '-d', '899b1a8cc0c4']
+2022-09-28 09:10:52,293:DEBUG:certbot._internal.main:Discovered plugins: PluginsRegistry(PluginEntryPoint#manual,PluginEntryPoint#null,PluginEntryPoint#standalone,PluginEntryPoint#webroot)
+2022-09-28 09:10:52,296:DEBUG:certbot._internal.log:Root logging level set at 20
+2022-09-28 09:10:52,296:INFO:certbot._internal.log:Saving debug log to /var/log/letsencrypt/letsencrypt.log
+2022-09-28 09:10:52,296:DEBUG:certbot._internal.plugins.selection:Requested authenticator standalone and installer None
+2022-09-28 09:10:52,296:DEBUG:certbot._internal.plugins.selection:Single candidate plugin: * standalone
+Description: Spin up a temporary webserver
+Interfaces: IAuthenticator, IPlugin
+Entry point: standalone = certbot._internal.plugins.standalone:Authenticator
+Initialized: <certbot._internal.plugins.standalone.Authenticator object at 0xffff9bb93a30>
+Prep: True
+2022-09-28 09:10:52,296:DEBUG:certbot._internal.plugins.selection:Selected authenticator <certbot._internal.plugins.standalone.Authenticator object at 0xffff9bb93a30> and installer None
+2022-09-28 09:10:52,296:INFO:certbot._internal.plugins.selection:Plugins selected: Authenticator standalone, Installer None
+2022-09-28 09:10:52,300:DEBUG:certbot._internal.main:Picked account: <Account(RegistrationResource(body=Registration(key=None, contact=(), agreement=None, status=None, terms_of_service_agreed=None, only_return_existing=None, external_account_binding=None), uri='https://prov-ca:9000/acme/hosts/account/Hx0rNtry40Yr8tIwWa7zM1pfcl4ideeG', new_authzr_uri=None, terms_of_service=None), bba5fa3250d83ddf650bc47c6d2dd7cc, Meta(creation_dt=datetime.datetime(2022, 9, 28, 9, 10, 48, tzinfo=<UTC>), creation_host='899b1a8cc0c4', register_to_eff=None))>
+2022-09-28 09:10:52,300:DEBUG:acme.client:Sending GET request to https://prov-ca:9000/acme/hosts/directory.
+2022-09-28 09:10:52,301:DEBUG:urllib3.connectionpool:Starting new HTTPS connection (1): prov-ca:9000
+2022-09-28 09:10:52,306:DEBUG:urllib3.connectionpool:https://prov-ca:9000 "GET /acme/hosts/directory HTTP/1.1" 200 297
+2022-09-28 09:10:52,306:DEBUG:acme.client:Received response:
+HTTP 200
+Content-Type: application/json
+Date: Wed, 28 Sep 2022 09:10:52 GMT
+Content-Length: 297
+
+{"newNonce":"https://prov-ca:9000/acme/hosts/new-nonce","newAccount":"https://prov-ca:9000/acme/hosts/new-account","newOrder":"https://prov-ca:9000/acme/hosts/new-order","revokeCert":"https://prov-ca:9000/acme/hosts/revoke-cert","keyChange":"https://prov-ca:9000/acme/hosts/key-change","meta":{}}
+
+2022-09-28 09:10:52,306:DEBUG:certbot.display.util:Notifying user: Requesting a certificate for 'ds' and 899b1a8cc0c4
+2022-09-28 09:10:52,388:DEBUG:certbot.crypto_util:Generating RSA key (2048 bits): /etc/letsencrypt/keys/0004_key-certbot.pem
+2022-09-28 09:10:52,389:DEBUG:certbot.crypto_util:Creating CSR: /etc/letsencrypt/csr/0004_csr-certbot.pem
+2022-09-28 09:10:52,390:DEBUG:acme.client:Requesting fresh nonce
+2022-09-28 09:10:52,390:DEBUG:acme.client:Sending HEAD request to https://prov-ca:9000/acme/hosts/new-nonce.
+2022-09-28 09:10:52,391:DEBUG:urllib3.connectionpool:https://prov-ca:9000 "HEAD /acme/hosts/new-nonce HTTP/1.1" 200 0
+2022-09-28 09:10:52,392:DEBUG:acme.client:Received response:
+HTTP 200
+Cache-Control: no-store
+Link: <https://prov-ca:9000/acme/hosts/directory>;rel="index"
+Replay-Nonce: UW9UNUpjNHFUaFMwSkZpZmtOZ2p4cTlaU0U1RXlDZlU
+Date: Wed, 28 Sep 2022 09:10:52 GMT
+
+
+2022-09-28 09:10:52,392:DEBUG:acme.client:Storing nonce: UW9UNUpjNHFUaFMwSkZpZmtOZ2p4cTlaU0U1RXlDZlU
+2022-09-28 09:10:52,392:DEBUG:acme.client:JWS payload:
+b'{\n  "identifiers": [\n    {\n      "type": "dns",\n      "value": "\'ds\'"\n    },\n    {\n      "type": "dns",\n      "value": "899b1a8cc0c4"\n    }\n  ]\n}'
+2022-09-28 09:10:52,393:DEBUG:acme.client:Sending POST request to https://prov-ca:9000/acme/hosts/new-order:
+{
+  "protected": "eyJhbGciOiAiUlMyNTYiLCAia2lkIjogImh0dHBzOi8vcHJvdi1jYTo5MDAwL2FjbWUvaG9zdHMvYWNjb3VudC9IeDByTnRyeTQwWXI4dEl3V2E3ek0xcGZjbDRpZGVlRyIsICJub25jZSI6ICJVVzlVTlVwak5IRlVhRk13U2tacFptdE9aMnA0Y1RsYVUwVTFSWGxEWmxVIiwgInVybCI6ICJodHRwczovL3Byb3YtY2E6OTAwMC9hY21lL2hvc3RzL25ldy1vcmRlciJ9",
+  "signature": "wBUFtUIpALahEXwucwOuntoMUEVKscoku-21FUj7SeP1Ee66byWzZmT6KuF_72VMypmDEML4NXD_7jsIQ9NfDkXQNB-33dhDbrG_3IXQkkiwpfNpIn2FqftV9xtjv18CQhkSXgr2WGFvQBopSaUmh0gej6JwS5pg-CQzYsqHq6s3-5nJFi71GT-IZT8e5KDURpB9alJxASe-XUgWPwrIaeMc5y2kCeCKPMtVurDguvqofloRlU3XwzSk58dW_RKLgQTAWCvPNCinJ9uMKVKnjqicGFlw8qaGJaT5XTVn3ofBZ_v20n7PaugrGsg1U_K3UcCQrfG98jlapvb66nnkbA",
+  "payload": "ewogICJpZGVudGlmaWVycyI6IFsKICAgIHsKICAgICAgInR5cGUiOiAiZG5zIiwKICAgICAgInZhbHVlIjogIidkcyciCiAgICB9LAogICAgewogICAgICAidHlwZSI6ICJkbnMiLAogICAgICAidmFsdWUiOiAiODk5YjFhOGNjMGM0IgogICAgfQogIF0KfQ"
+}
+2022-09-28 09:10:52,394:DEBUG:urllib3.connectionpool:https://prov-ca:9000 "POST /acme/hosts/new-order HTTP/1.1" 400 93
+2022-09-28 09:10:52,394:DEBUG:acme.client:Received response:
+HTTP 400
+Cache-Control: no-store
+Content-Type: application/problem+json
+Link: <https://prov-ca:9000/acme/hosts/directory>;rel="index"
+Replay-Nonce: TWx5OW94U2NuMHVicjR6Z1Ridk1QWEVxMkM5ZFhZSkI
+Date: Wed, 28 Sep 2022 09:10:52 GMT
+Content-Length: 93
+
+{"type":"urn:ietf:params:acme:error:malformed","detail":"The request message was malformed"}
+
+2022-09-28 09:10:52,394:DEBUG:certbot._internal.log:Exiting abnormally:
+Traceback (most recent call last):
+  File "/usr/bin/certbot", line 33, in <module>
+    sys.exit(load_entry_point('certbot==1.12.0', 'console_scripts', 'certbot')())
+  File "/usr/lib/python3/dist-packages/certbot/main.py", line 15, in main
+    return internal_main.main(cli_args)
+  File "/usr/lib/python3/dist-packages/certbot/_internal/main.py", line 1413, in main
+    return config.func(config, plugins)
+  File "/usr/lib/python3/dist-packages/certbot/_internal/main.py", line 1293, in certonly
+    lineage = _get_and_save_cert(le_client, config, domains, certname, lineage)
+  File "/usr/lib/python3/dist-packages/certbot/_internal/main.py", line 134, in _get_and_save_cert
+    lineage = le_client.obtain_and_enroll_certificate(domains, certname)
+  File "/usr/lib/python3/dist-packages/certbot/_internal/client.py", line 441, in obtain_and_enroll_certificate
+    cert, chain, key, _ = self.obtain_certificate(domains)
+  File "/usr/lib/python3/dist-packages/certbot/_internal/client.py", line 374, in obtain_certificate
+    orderr = self._get_order_and_authorizations(csr.data, self.config.allow_subset_of_names)
+  File "/usr/lib/python3/dist-packages/certbot/_internal/client.py", line 406, in _get_order_and_authorizations
+    orderr = self.acme.new_order(csr_pem)
+  File "/usr/lib/python3/dist-packages/acme/client.py", line 886, in new_order
+    return self.client.new_order(csr_pem)
+  File "/usr/lib/python3/dist-packages/acme/client.py", line 668, in new_order
+    response = self._post(self.directory['newOrder'], order)
+  File "/usr/lib/python3/dist-packages/acme/client.py", line 97, in _post
+    return self.net.post(*args, **kwargs)
+  File "/usr/lib/python3/dist-packages/acme/client.py", line 1201, in post
+    return self._post_once(*args, **kwargs)
+  File "/usr/lib/python3/dist-packages/acme/client.py", line 1214, in _post_once
+    response = self._check_response(response, content_type=content_type)
+  File "/usr/lib/python3/dist-packages/acme/client.py", line 1072, in _check_response
+    raise messages.Error.from_json(jobj)
+acme.messages.Error: urn:ietf:params:acme:error:malformed :: The request message was malformed :: The request message was malformed
+2022-09-28 09:10:52,394:ERROR:certbot._internal.log:An unexpected error occurred:
+2022-09-28 09:10:52,394:ERROR:certbot._internal.log:The request message was malformed :: The request message was malformed
+2022-09-28 09:10:54,555:DEBUG:certbot._internal.main:certbot version: 1.12.0
+2022-09-28 09:10:54,555:DEBUG:certbot._internal.main:Location of certbot entry point: /usr/bin/certbot
+2022-09-28 09:10:54,555:DEBUG:certbot._internal.main:Arguments: ['-n', '--standalone', '--server', 'https://prov-ca:9000/acme/hosts/directory', '--cert-name', 'auto-provisioned', '--non-interactive', '--agree-tos', '--email', 'auto-provision@899b1a8cc0c4', '-d', "'ds'", '-d', '899b1a8cc0c4']
+2022-09-28 09:10:54,555:DEBUG:certbot._internal.main:Discovered plugins: PluginsRegistry(PluginEntryPoint#manual,PluginEntryPoint#null,PluginEntryPoint#standalone,PluginEntryPoint#webroot)
+2022-09-28 09:10:54,558:DEBUG:certbot._internal.log:Root logging level set at 20
+2022-09-28 09:10:54,558:INFO:certbot._internal.log:Saving debug log to /var/log/letsencrypt/letsencrypt.log
+2022-09-28 09:10:54,558:DEBUG:certbot._internal.plugins.selection:Requested authenticator standalone and installer None
+2022-09-28 09:10:54,559:DEBUG:certbot._internal.plugins.selection:Single candidate plugin: * standalone
+Description: Spin up a temporary webserver
+Interfaces: IAuthenticator, IPlugin
+Entry point: standalone = certbot._internal.plugins.standalone:Authenticator
+Initialized: <certbot._internal.plugins.standalone.Authenticator object at 0xffffab0b0a60>
+Prep: True
+2022-09-28 09:10:54,559:DEBUG:certbot._internal.plugins.selection:Selected authenticator <certbot._internal.plugins.standalone.Authenticator object at 0xffffab0b0a60> and installer None
+2022-09-28 09:10:54,559:INFO:certbot._internal.plugins.selection:Plugins selected: Authenticator standalone, Installer None
+2022-09-28 09:10:54,563:DEBUG:certbot._internal.main:Picked account: <Account(RegistrationResource(body=Registration(key=None, contact=(), agreement=None, status=None, terms_of_service_agreed=None, only_return_existing=None, external_account_binding=None), uri='https://prov-ca:9000/acme/hosts/account/Hx0rNtry40Yr8tIwWa7zM1pfcl4ideeG', new_authzr_uri=None, terms_of_service=None), bba5fa3250d83ddf650bc47c6d2dd7cc, Meta(creation_dt=datetime.datetime(2022, 9, 28, 9, 10, 48, tzinfo=<UTC>), creation_host='899b1a8cc0c4', register_to_eff=None))>
+2022-09-28 09:10:54,563:DEBUG:acme.client:Sending GET request to https://prov-ca:9000/acme/hosts/directory.
+2022-09-28 09:10:54,563:DEBUG:urllib3.connectionpool:Starting new HTTPS connection (1): prov-ca:9000
+2022-09-28 09:10:54,568:DEBUG:urllib3.connectionpool:https://prov-ca:9000 "GET /acme/hosts/directory HTTP/1.1" 200 297
+2022-09-28 09:10:54,569:DEBUG:acme.client:Received response:
+HTTP 200
+Content-Type: application/json
+Date: Wed, 28 Sep 2022 09:10:54 GMT
+Content-Length: 297
+
+{"newNonce":"https://prov-ca:9000/acme/hosts/new-nonce","newAccount":"https://prov-ca:9000/acme/hosts/new-account","newOrder":"https://prov-ca:9000/acme/hosts/new-order","revokeCert":"https://prov-ca:9000/acme/hosts/revoke-cert","keyChange":"https://prov-ca:9000/acme/hosts/key-change","meta":{}}
+
+2022-09-28 09:10:54,569:DEBUG:certbot.display.util:Notifying user: Requesting a certificate for 'ds' and 899b1a8cc0c4
+2022-09-28 09:10:54,612:DEBUG:certbot.crypto_util:Generating RSA key (2048 bits): /etc/letsencrypt/keys/0005_key-certbot.pem
+2022-09-28 09:10:54,614:DEBUG:certbot.crypto_util:Creating CSR: /etc/letsencrypt/csr/0005_csr-certbot.pem
+2022-09-28 09:10:54,614:DEBUG:acme.client:Requesting fresh nonce
+2022-09-28 09:10:54,614:DEBUG:acme.client:Sending HEAD request to https://prov-ca:9000/acme/hosts/new-nonce.
+2022-09-28 09:10:54,616:DEBUG:urllib3.connectionpool:https://prov-ca:9000 "HEAD /acme/hosts/new-nonce HTTP/1.1" 200 0
+2022-09-28 09:10:54,616:DEBUG:acme.client:Received response:
+HTTP 200
+Cache-Control: no-store
+Link: <https://prov-ca:9000/acme/hosts/directory>;rel="index"
+Replay-Nonce: TmR0NUkxQmtvWmRrcHJsbjgycHZlNjBOMkRoTFlQdms
+Date: Wed, 28 Sep 2022 09:10:54 GMT
+
+
+2022-09-28 09:10:54,616:DEBUG:acme.client:Storing nonce: TmR0NUkxQmtvWmRrcHJsbjgycHZlNjBOMkRoTFlQdms
+2022-09-28 09:10:54,616:DEBUG:acme.client:JWS payload:
+b'{\n  "identifiers": [\n    {\n      "type": "dns",\n      "value": "\'ds\'"\n    },\n    {\n      "type": "dns",\n      "value": "899b1a8cc0c4"\n    }\n  ]\n}'
+2022-09-28 09:10:54,617:DEBUG:acme.client:Sending POST request to https://prov-ca:9000/acme/hosts/new-order:
+{
+  "protected": "eyJhbGciOiAiUlMyNTYiLCAia2lkIjogImh0dHBzOi8vcHJvdi1jYTo5MDAwL2FjbWUvaG9zdHMvYWNjb3VudC9IeDByTnRyeTQwWXI4dEl3V2E3ek0xcGZjbDRpZGVlRyIsICJub25jZSI6ICJUbVIwTlVreFFtdHZXbVJyY0hKc2JqZ3ljSFpsTmpCT01rUm9URmxRZG1zIiwgInVybCI6ICJodHRwczovL3Byb3YtY2E6OTAwMC9hY21lL2hvc3RzL25ldy1vcmRlciJ9",
+  "signature": "p5Ch8y0jZspiBuwRPDVDOvOk1VLMYec48kQ5ebN57GzB-h86Wbghs0Z4rKoliW8RKxUpe6hCZiD-lS6wjzxxUFE8ShMvuWRwsrOPYnvt-cpPmv5V32daqjeV3cv3C20cyZwoJZo7TxAz4vzIS1v1D-_GL9fjtMVqKPYxY8FrKmxLYo1-tJwtm3duMZxKJk-gbfFfLUBHOqsuGD1IwobaMfuBRRNjVmQFg6EtEesIGpt_MRRWmH5DC3QPVmWUBURBZIhQe1uSxLtGIIZTPRHkSObS5BVwWklz3iYI6zL5nnNi57MSc4nGScDhfRo4x-1ETXZTMqIq-3Se2Vl1pCwipw",
+  "payload": "ewogICJpZGVudGlmaWVycyI6IFsKICAgIHsKICAgICAgInR5cGUiOiAiZG5zIiwKICAgICAgInZhbHVlIjogIidkcyciCiAgICB9LAogICAgewogICAgICAidHlwZSI6ICJkbnMiLAogICAgICAidmFsdWUiOiAiODk5YjFhOGNjMGM0IgogICAgfQogIF0KfQ"
+}
+2022-09-28 09:10:54,618:DEBUG:urllib3.connectionpool:https://prov-ca:9000 "POST /acme/hosts/new-order HTTP/1.1" 400 93
+2022-09-28 09:10:54,618:DEBUG:acme.client:Received response:
+HTTP 400
+Cache-Control: no-store
+Content-Type: application/problem+json
+Link: <https://prov-ca:9000/acme/hosts/directory>;rel="index"
+Replay-Nonce: SUhyUG02c2RCU2pTakpuZUdQaXMzMm9BVDBNdDZVODc
+Date: Wed, 28 Sep 2022 09:10:54 GMT
+Content-Length: 93
+
+{"type":"urn:ietf:params:acme:error:malformed","detail":"The request message was malformed"}
+
+2022-09-28 09:10:54,619:DEBUG:certbot._internal.log:Exiting abnormally:
+Traceback (most recent call last):
+  File "/usr/bin/certbot", line 33, in <module>
+    sys.exit(load_entry_point('certbot==1.12.0', 'console_scripts', 'certbot')())
+  File "/usr/lib/python3/dist-packages/certbot/main.py", line 15, in main
+    return internal_main.main(cli_args)
+  File "/usr/lib/python3/dist-packages/certbot/_internal/main.py", line 1413, in main
+    return config.func(config, plugins)
+  File "/usr/lib/python3/dist-packages/certbot/_internal/main.py", line 1293, in certonly
+    lineage = _get_and_save_cert(le_client, config, domains, certname, lineage)
+  File "/usr/lib/python3/dist-packages/certbot/_internal/main.py", line 134, in _get_and_save_cert
+    lineage = le_client.obtain_and_enroll_certificate(domains, certname)
+  File "/usr/lib/python3/dist-packages/certbot/_internal/client.py", line 441, in obtain_and_enroll_certificate
+    cert, chain, key, _ = self.obtain_certificate(domains)
+  File "/usr/lib/python3/dist-packages/certbot/_internal/client.py", line 374, in obtain_certificate
+    orderr = self._get_order_and_authorizations(csr.data, self.config.allow_subset_of_names)
+  File "/usr/lib/python3/dist-packages/certbot/_internal/client.py", line 406, in _get_order_and_authorizations
+    orderr = self.acme.new_order(csr_pem)
+  File "/usr/lib/python3/dist-packages/acme/client.py", line 886, in new_order
+    return self.client.new_order(csr_pem)
+  File "/usr/lib/python3/dist-packages/acme/client.py", line 668, in new_order
+    response = self._post(self.directory['newOrder'], order)
+  File "/usr/lib/python3/dist-packages/acme/client.py", line 97, in _post
+    return self.net.post(*args, **kwargs)
+  File "/usr/lib/python3/dist-packages/acme/client.py", line 1201, in post
+    return self._post_once(*args, **kwargs)
+  File "/usr/lib/python3/dist-packages/acme/client.py", line 1214, in _post_once
+    response = self._check_response(response, content_type=content_type)
+  File "/usr/lib/python3/dist-packages/acme/client.py", line 1072, in _check_response
+    raise messages.Error.from_json(jobj)
+acme.messages.Error: urn:ietf:params:acme:error:malformed :: The request message was malformed :: The request message was malformed
+2022-09-28 09:10:54,619:ERROR:certbot._internal.log:An unexpected error occurred:
+2022-09-28 09:10:54,619:ERROR:certbot._internal.log:The request message was malformed :: The request message was malformed
+2022-09-28 09:10:58,399:DEBUG:certbot._internal.main:certbot version: 1.12.0
+2022-09-28 09:10:58,399:DEBUG:certbot._internal.main:Location of certbot entry point: /usr/bin/certbot
+2022-09-28 09:10:58,399:DEBUG:certbot._internal.main:Arguments: ['-n', '--standalone', '--server', 'https://prov-ca:9000/acme/hosts/directory', '--cert-name', 'auto-provisioned', '--non-interactive', '--agree-tos', '--email', 'auto-provision@899b1a8cc0c4', '-d', "'ds'", '-d', '899b1a8cc0c4']
+2022-09-28 09:10:58,399:DEBUG:certbot._internal.main:Discovered plugins: PluginsRegistry(PluginEntryPoint#manual,PluginEntryPoint#null,PluginEntryPoint#standalone,PluginEntryPoint#webroot)
+2022-09-28 09:10:58,402:DEBUG:certbot._internal.log:Root logging level set at 20
+2022-09-28 09:10:58,402:INFO:certbot._internal.log:Saving debug log to /var/log/letsencrypt/letsencrypt.log
+2022-09-28 09:10:58,402:DEBUG:certbot._internal.plugins.selection:Requested authenticator standalone and installer None
+2022-09-28 09:10:58,402:DEBUG:certbot._internal.plugins.selection:Single candidate plugin: * standalone
+Description: Spin up a temporary webserver
+Interfaces: IAuthenticator, IPlugin
+Entry point: standalone = certbot._internal.plugins.standalone:Authenticator
+Initialized: <certbot._internal.plugins.standalone.Authenticator object at 0xffff919129a0>
+Prep: True
+2022-09-28 09:10:58,403:DEBUG:certbot._internal.plugins.selection:Selected authenticator <certbot._internal.plugins.standalone.Authenticator object at 0xffff919129a0> and installer None
+2022-09-28 09:10:58,403:INFO:certbot._internal.plugins.selection:Plugins selected: Authenticator standalone, Installer None
+2022-09-28 09:10:58,406:DEBUG:certbot._internal.main:Picked account: <Account(RegistrationResource(body=Registration(key=None, contact=(), agreement=None, status=None, terms_of_service_agreed=None, only_return_existing=None, external_account_binding=None), uri='https://prov-ca:9000/acme/hosts/account/Hx0rNtry40Yr8tIwWa7zM1pfcl4ideeG', new_authzr_uri=None, terms_of_service=None), bba5fa3250d83ddf650bc47c6d2dd7cc, Meta(creation_dt=datetime.datetime(2022, 9, 28, 9, 10, 48, tzinfo=<UTC>), creation_host='899b1a8cc0c4', register_to_eff=None))>
+2022-09-28 09:10:58,407:DEBUG:acme.client:Sending GET request to https://prov-ca:9000/acme/hosts/directory.
+2022-09-28 09:10:58,407:DEBUG:urllib3.connectionpool:Starting new HTTPS connection (1): prov-ca:9000
+2022-09-28 09:10:58,413:DEBUG:urllib3.connectionpool:https://prov-ca:9000 "GET /acme/hosts/directory HTTP/1.1" 200 297
+2022-09-28 09:10:58,414:DEBUG:acme.client:Received response:
+HTTP 200
+Content-Type: application/json
+Date: Wed, 28 Sep 2022 09:10:58 GMT
+Content-Length: 297
+
+{"newNonce":"https://prov-ca:9000/acme/hosts/new-nonce","newAccount":"https://prov-ca:9000/acme/hosts/new-account","newOrder":"https://prov-ca:9000/acme/hosts/new-order","revokeCert":"https://prov-ca:9000/acme/hosts/revoke-cert","keyChange":"https://prov-ca:9000/acme/hosts/key-change","meta":{}}
+
+2022-09-28 09:10:58,414:DEBUG:certbot.display.util:Notifying user: Requesting a certificate for 'ds' and 899b1a8cc0c4
+2022-09-28 09:10:58,433:DEBUG:certbot.crypto_util:Generating RSA key (2048 bits): /etc/letsencrypt/keys/0006_key-certbot.pem
+2022-09-28 09:10:58,434:DEBUG:certbot.crypto_util:Creating CSR: /etc/letsencrypt/csr/0006_csr-certbot.pem
+2022-09-28 09:10:58,434:DEBUG:acme.client:Requesting fresh nonce
+2022-09-28 09:10:58,434:DEBUG:acme.client:Sending HEAD request to https://prov-ca:9000/acme/hosts/new-nonce.
+2022-09-28 09:10:58,436:DEBUG:urllib3.connectionpool:https://prov-ca:9000 "HEAD /acme/hosts/new-nonce HTTP/1.1" 200 0
+2022-09-28 09:10:58,436:DEBUG:acme.client:Received response:
+HTTP 200
+Cache-Control: no-store
+Link: <https://prov-ca:9000/acme/hosts/directory>;rel="index"
+Replay-Nonce: OEZQaW1YWXFlZ1RibEcya2tlY2tnaDhKeXI3Uk5iWXc
+Date: Wed, 28 Sep 2022 09:10:58 GMT
+
+
+2022-09-28 09:10:58,436:DEBUG:acme.client:Storing nonce: OEZQaW1YWXFlZ1RibEcya2tlY2tnaDhKeXI3Uk5iWXc
+2022-09-28 09:10:58,436:DEBUG:acme.client:JWS payload:
+b'{\n  "identifiers": [\n    {\n      "type": "dns",\n      "value": "\'ds\'"\n    },\n    {\n      "type": "dns",\n      "value": "899b1a8cc0c4"\n    }\n  ]\n}'
+2022-09-28 09:10:58,437:DEBUG:acme.client:Sending POST request to https://prov-ca:9000/acme/hosts/new-order:
+{
+  "protected": "eyJhbGciOiAiUlMyNTYiLCAia2lkIjogImh0dHBzOi8vcHJvdi1jYTo5MDAwL2FjbWUvaG9zdHMvYWNjb3VudC9IeDByTnRyeTQwWXI4dEl3V2E3ek0xcGZjbDRpZGVlRyIsICJub25jZSI6ICJPRVpRYVcxWVdYRmxaMVJpYkVjeWEydGxZMnRuYURoS2VYSTNVazVpV1hjIiwgInVybCI6ICJodHRwczovL3Byb3YtY2E6OTAwMC9hY21lL2hvc3RzL25ldy1vcmRlciJ9",
+  "signature": "tjb7MFrol2QHfnUyVZI83-N6DXVnq6FKZJjk7HKryk_X5ZPXBMG8IWSQ92y_7fMxHt-hIL30wujwtglvQS9TRNDlZzQq-dNnGdpNP1CEtsFt3NNsInUz7OiDY3FPvwtztrypXJdSsDCWusKF3nn9TKAfmHiv_YeNfcz1mIBG9UZO33uLoN6eC5x18qXDLIKCDBuBlIfhb8eNaflRcbzI_ZaDVQFHh8XatCzNtwKQmCvS7vbZw8jyDPIj7uVh6JwBh4lzm6RzXW1yoWs8EBEcdZ7b-hB1zPV2R6Ls51zL2Ya5cW-feayAqDJ5NN5BhybhOvlMadVVz_w3qw4qF_LuKg",
+  "payload": "ewogICJpZGVudGlmaWVycyI6IFsKICAgIHsKICAgICAgInR5cGUiOiAiZG5zIiwKICAgICAgInZhbHVlIjogIidkcyciCiAgICB9LAogICAgewogICAgICAidHlwZSI6ICJkbnMiLAogICAgICAidmFsdWUiOiAiODk5YjFhOGNjMGM0IgogICAgfQogIF0KfQ"
+}
+2022-09-28 09:10:58,438:DEBUG:urllib3.connectionpool:https://prov-ca:9000 "POST /acme/hosts/new-order HTTP/1.1" 400 93
+2022-09-28 09:10:58,438:DEBUG:acme.client:Received response:
+HTTP 400
+Cache-Control: no-store
+Content-Type: application/problem+json
+Link: <https://prov-ca:9000/acme/hosts/directory>;rel="index"
+Replay-Nonce: MjF6Q0xaclBtb3dDWk8wZGpmQUZVanZmN21XS3c2aW0
+Date: Wed, 28 Sep 2022 09:10:58 GMT
+Content-Length: 93
+
+{"type":"urn:ietf:params:acme:error:malformed","detail":"The request message was malformed"}
+
+2022-09-28 09:10:58,438:DEBUG:certbot._internal.log:Exiting abnormally:
+Traceback (most recent call last):
+  File "/usr/bin/certbot", line 33, in <module>
+    sys.exit(load_entry_point('certbot==1.12.0', 'console_scripts', 'certbot')())
+  File "/usr/lib/python3/dist-packages/certbot/main.py", line 15, in main
+    return internal_main.main(cli_args)
+  File "/usr/lib/python3/dist-packages/certbot/_internal/main.py", line 1413, in main
+    return config.func(config, plugins)
+  File "/usr/lib/python3/dist-packages/certbot/_internal/main.py", line 1293, in certonly
+    lineage = _get_and_save_cert(le_client, config, domains, certname, lineage)
+  File "/usr/lib/python3/dist-packages/certbot/_internal/main.py", line 134, in _get_and_save_cert
+    lineage = le_client.obtain_and_enroll_certificate(domains, certname)
+  File "/usr/lib/python3/dist-packages/certbot/_internal/client.py", line 441, in obtain_and_enroll_certificate
+    cert, chain, key, _ = self.obtain_certificate(domains)
+  File "/usr/lib/python3/dist-packages/certbot/_internal/client.py", line 374, in obtain_certificate
+    orderr = self._get_order_and_authorizations(csr.data, self.config.allow_subset_of_names)
+  File "/usr/lib/python3/dist-packages/certbot/_internal/client.py", line 406, in _get_order_and_authorizations
+    orderr = self.acme.new_order(csr_pem)
+  File "/usr/lib/python3/dist-packages/acme/client.py", line 886, in new_order
+    return self.client.new_order(csr_pem)
+  File "/usr/lib/python3/dist-packages/acme/client.py", line 668, in new_order
+    response = self._post(self.directory['newOrder'], order)
+  File "/usr/lib/python3/dist-packages/acme/client.py", line 97, in _post
+    return self.net.post(*args, **kwargs)
+  File "/usr/lib/python3/dist-packages/acme/client.py", line 1201, in post
+    return self._post_once(*args, **kwargs)
+  File "/usr/lib/python3/dist-packages/acme/client.py", line 1214, in _post_once
+    response = self._check_response(response, content_type=content_type)
+  File "/usr/lib/python3/dist-packages/acme/client.py", line 1072, in _check_response
+    raise messages.Error.from_json(jobj)
+acme.messages.Error: urn:ietf:params:acme:error:malformed :: The request message was malformed :: The request message was malformed
+2022-09-28 09:10:58,439:ERROR:certbot._internal.log:An unexpected error occurred:
+2022-09-28 09:10:58,439:ERROR:certbot._internal.log:The request message was malformed :: The request message was malformed

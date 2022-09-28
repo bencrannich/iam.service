@@ -25,6 +25,17 @@ keyUsage=critical,keyCertSign,cRLSign,digitalSignature
 subjectKeyIdentifier=hash
 authorityKeyIdentifier=keyid:always,issuer:always
 
+[infra_ca_extensions]
+basicConstraints=critical,CA:true,pathlen:0
+keyUsage=critical,keyCertSign,cRLSign,digitalSignature
+subjectKeyIdentifier=hash
+authorityKeyIdentifier=keyid:always,issuer:always
+
+[user_ca_extensions]
+basicConstraints=critical,CA:true,pathlen:0
+keyUsage=critical,keyCertSign,cRLSign,digitalSignature
+subjectKeyIdentifier=hash
+authorityKeyIdentifier=keyid:always,issuer:always
 
 [kms_extensions]
 basicConstraints=critical,CA:false

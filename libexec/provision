@@ -15,7 +15,7 @@ log() {
 }
 [ -z "${UID}" ] && UID=$(id -u)
 
-HOSTNAME=${HOSTNAME:-$(hostname || echo localhost)}
+HOSTNAME=${HOSTNAME:-$(hostname -f || echo localhost)}
 PROV_ACME_EMAIL=${PROV_ACME_EMAIL:-auto-provision@${HOSTNAME}}
 
 if ! [ -z "${PROV_CREDENTIALS_FILE}" ] ; then
@@ -40,22 +40,32 @@ if ! [ -z "${PROV_TLS_ANCHORS_DIR}" ] && [ "${UID}" -eq 0 ] ; then
 	fi
 fi
 
-if ! [ -z "${PROV_STEP_URL}" ] ; then
-	if [ -z "${PROV_STEP_FINGERPRINT}" ] ; then
-		log "ERROR: PROV_STEP_URL is set but PROV_STEP_FINGERPRINT is not"
-		exit 10
-	fi
-	log "connecting to Step CA ${PROV_STEP_URL}"
-	step ca bootstrap --ca-url "${PROV_STEP_URL}" --fingerprint ${PROV_STEP_FINGERPRINT} --install
-fi
-
 if ! [ -z "${PROV_ACME_URL}" ] && [ "${UID}" -eq 0 ] ; then
 	log "obtaining host certificate from provisioning CA at ${PROV_ACME_URL}"
+	if [ -z "${PROV_ACME_REQNAME}" ] ; then
+		prov_name=""
+	else
+		prov_name="-d '${PROV_ACME_REQNAME}'"
+	fi
 	certbot certonly -n --standalone \
 		--server "${PROV_ACME_URL}" \
 		--cert-name auto-provisioned \
 		--non-interactive --agree-tos --email "${PROV_ACME_EMAIL}" \
-		-d $(hostname -f)
+		${prov_name} \
+		-d ${HOSTNAME}
+fi
+
+if ! [ -z "${PROV_STEP_URL}" ] ; then
+	if [ -z "${PROV_STEP_FINGERPRINT}" ] ; then
+		if ! [ -z "${PROV_STEP_ANCHOR}" ] ; then
+			PROV_STEP_FINGERPRINT=$(step certificate fingerprint ${PROV_STEP_ANCHOR})
+		else
+			log "ERROR: PROV_STEP_URL is set but PROV_STEP_FINGERPRINT is not"
+			exit 10
+		fi
+	fi
+	log "connecting to Step CA ${PROV_STEP_URL}"
+	step ca bootstrap --ca-url "${PROV_STEP_URL}" --fingerprint ${PROV_STEP_FINGERPRINT} --install
 fi
 
 if ! [ -z "${PROV_VAULT_ADDR}" ] ; then
@@ -70,10 +80,15 @@ if ! [ -z "${VAULT_ADDR}" ] ; then
 		export VAULT_TOKEN
 	fi
 	if [ -z "${VAULT_TOKEN}" ] && [ -r /etc/letsencrypt/live/auto-provisioned/privkey.pem ] && [ -r /etc/letsencrypt/live/auto-provisioned/fullchain.pem ] ; then
+		set +e
 		VAULT_TOKEN=$(vault login -field=token -no-store -method=cert \
 			-client-cert=/etc/letsencrypt/live/auto-provisioned/fullchain.pem \
-			-client-key=/etc/letsencrypt/live/auto-provisioned/privkey.pem)
-		export VAULT_TOKEN
+			-client-key=/etc/letsencrypt/live/auto-provisioned/privkey.pem || true)
+		if [ -z "${VAULT_TOKEN}" ] ; then
+			log "WARNING: unable to access KMS with provisioning certificate"
+		else
+			export VAULT_TOKEN
+		fi
 	fi
 	if [ -z "${VAULT_TOKEN}" ] ; then
 		log "WARNING: [PROV_]VAULT_ADDR is set but [PROV_]VAULT_TOKEN is not; Vault may not be useable"

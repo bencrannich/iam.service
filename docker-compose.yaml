@@ -11,6 +11,8 @@ services:
     depends_on:
       infra-ca:
         condition: service_healthy
+#    environment:
+#      PROV_ACME_REQNAME: ds
   kdc:
     restart: unless-stopped
     build:
@@ -21,24 +23,30 @@ services:
       user-ca:
         condition: service_healthy
       ds:
-        condition: service_started
+        condition: service_healthy
     volumes:
       - slaprun:/var/run/slapd
     networks:
       - iamnet
+#    environment:
+#      PROV_ACME_REQNAME: kdc
   kadmin:
     restart: unless-stopped
     build:
       target: kadmin
     depends_on:
-      - ds
-      - kdc
+      ds:
+        condition: service_healthy
+      kdc:
+        condition: service_healthy
     ports:
       - "127.0.0.1:749:749/udp"
     volumes:
       - slaprun:/var/run/slapd
     networks:
       - iamnet
+#    environment:
+#      PROV_ACME_REQNAME: kadmin
   prov-ca:
     build:
       target: online-ca

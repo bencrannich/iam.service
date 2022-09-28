@@ -15,28 +15,6 @@ openssl req -new \
   -key /keys/kms.key.pem \
   -out /requests/kms.req.pem \
   -subj '/CN=Key Management Service/O=Example Enterprises'" ]
-  kms-cert:
-    build:
-      target: offline-ca
-    network_mode: none
-    volumes:
-      - "./dev/data/inter-x1:/app/db"
-      - "./dev/inter-x1.cnf:/app/db/openssl.cnf:ro"
-      - "./dev/data/tls:/app/certs"
-      - "./dev/data/tls:/app/requests"
-      - "./dev/data/tls:/app/keys"
-      - "./dev/secrets/inter-x1:/app/private"
-    env_file:
-      - ./dev/dev.env
-      - ./dev/local.env
-    depends_on:
-      kms-csr:
-        condition: service_completed_successfully
-      merge-x1:
-        condition: service_completed_successfully
-    environment:
-      CA_NAME: inter-x1
-    command: [ "sign", "kms", "kms" ]
   kms:
     build:
       target: kms

@@ -50,15 +50,16 @@ vault login "${KMS_ROOT_TOKEN}"
 
 if [ "${init}" = "yes" ] ; then
 	printf "configuring KMS instance for the first time..." >&2
+	vault auth enable cert
 	vault secrets enable -path=secret -version=2 kv
 
 	# The intermediate CA can provide the certificates to the online CAs,
 	# but can't read any of their keys
 	vault policy write inter-ca - <<EOF
-path "secret/data/prov-ca/root_ca_crt" {
+path "secret/data/+/root_ca_crt" {
 	capabilities = [ "create", "update", "delete", "patch" ]
 }
-path "secret/data/prov-ca/intermediate_ca_crt" {
+path "secret/data/+/intermediate_ca_crt" {
 	capabilities = [ "create", "update", "delete", "patch" ]
 }
 EOF
@@ -68,10 +69,24 @@ EOF
 path "secret/data/prov-ca/*" {
 	capabilities = [ "create", "read", "update", "delete", "patch" ]
 }
-path "secret/data/prov-ca/root_ca_crt" {
+path "secret/data/+/root_ca_crt" {
 	capabilities = [ "read" ]
 }
-path "secret/data/prov-ca/intermediate_ca_crt" {
+path "secret/data/+/intermediate_ca_crt" {
+	capabilities = [ "read" ]
+}
+EOF
+	# The infrastructure CA can only read its (and others') certificates,
+	# but can otherwise perform any CRUD operations within
+	# secret/data/infra-ca
+	vault policy write infra-ca - <<EOF
+path "secret/data/infra-ca/*" {
+	capabilities = [ "create", "read", "update", "delete", "patch" ]
+}
+path "secret/data/+/root_ca_crt" {
+	capabilities = [ "read" ]
+}
+path "secret/data/+/intermediate_ca_crt" {
 	capabilities = [ "read" ]
 }
 EOF
@@ -94,6 +109,40 @@ EOF
 PROV_VAULT_ADDR='${VAULT_ADDR}'
 PROV_VAULT_TOKEN='${PROV_TOKEN}'
 EOF
-fi
+	INFRA_TOKEN="$(vault token create -field token -policy=infra-ca)"
+	touch /secrets/infra-ca.credentials && chmod 600 /secrets/infra-ca.credentials
+	cat >/secrets/infra-ca.credentials <<EOF
+PROV_VAULT_ADDR='${VAULT_ADDR}'
+PROV_VAULT_TOKEN='${INFRA_TOKEN}'
+EOF
 
+	# The infra-ca can use its provisioning cert to access its credentials
+	vault write auth/cert/certs/infra-ca-a1 policies=infra-ca allowed_dns_sans="infra-ca" required_extensions=oid:1.3.6.1.4.1.58118.113.1 certificate=@/certs/root-a1.crt.pem
+	#vault write auth/cert/certs/infra-ca-b1 policies=infra-ca allowed_dns_sans="infra-ca" required_extensions=oid:1.3.6.1.4.1.58118.113.1 certificate=@/certs/root-b1.crt.pem
+
+	# Create a policy for the directory server
+	vault policy write ds - <<EOF
+path "secret/data/ds/*" {
+	capabilities = [ "create", "read", "update", "delete", "patch" ]
+}
+EOF
+	vault write auth/cert/certs/ds-a1 policies=ds allowed_dns_sans="ds" required_extensions=oid:1.3.6.1.4.1.58118.113.1 certificate=@/certs/root-a1.crt.pem
+
+	# Create a policy for the Kerberos KDC
+	vault policy write kdc - <<EOF
+path "secret/data/kdc/*" {
+	capabilities = [ "create", "read", "update", "delete", "patch" ]
+}
+EOF
+	vault write auth/cert/certs/kdc policies=kdc allowed_dns_sans="kdc" required_extensions=oid:1.3.6.1.4.1.58118.113.1 certificate=@${VAULT_CACERT}
+
+	# Create a policy for the Kerberos kadmin server
+	vault policy write kadmin - <<EOF
+path "secret/data/kadmin/*" {
+	capabilities = [ "create", "read", "update", "delete", "patch" ]
+}
+EOF
+	vault write auth/cert/certs/kadmin policies=kadmin allowed_dns_sans="kadmin" required_extensions=oid:1.3.6.1.4.1.58118.113.1 certificate=@${VAULT_CACERT}
+
+fi
 exit 0

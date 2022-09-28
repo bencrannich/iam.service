@@ -12,6 +12,7 @@ services:
     volumes:
       - "./dev/data/tls/root-a1.crt.pem:/config/anchors/tls/root-a1.crt"
       - "./dev/data/tls/root-b1.crt.pem:/config/anchors/tls/root-b1.crt"
+      - "./dev/data/tls/roots.fullchain.pem:/config/anchors/tls/roots.fullchain.pem"
 # This is a persistent volume for convenience
       - home:/me
 # Make the source tree available at /workspace for convenience
@@ -20,11 +21,11 @@ services:
       prov-ca:
         condition: service_healthy
       ds:
-        condition: service_started
+        condition: service_healthy
       kdc:
-        condition: service_started
+        condition: service_healthy
       kadmin:
-        condition: service_started
+        condition: service_healthy
     networks:
       - iamnet
 # only needed for debugging via strace (or similar) within the container

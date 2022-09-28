@@ -5,7 +5,7 @@ services:
       target: offline-ca
     volumes:
       - "./dev/data/inter-x1:/app/db"
-      - "./dev/inter-x1.cnf:/app/db/openssl.cnf:ro"
+      - "./dev/offline-ca/inter-x1.cnf:/app/db/openssl.cnf:ro"
       - "./dev/data/tls:/app/certs"
       - "./dev/data/tls:/app/requests"
       - "./dev/data/tls:/app/keys"
@@ -67,6 +67,9 @@ services:
   merge-x1:
     build:
       target: core
+    env_file:
+      - ./dev/dev.env
+      - ./dev/local.env
     volumes:
       - "./dev/data/tls:/certs"
     command: [ "/bin/sh", "-c", "cd /certs && \
@@ -80,90 +83,25 @@ services:
         condition: service_completed_successfully
       sign-x1-b1:
         condition: service_completed_successfully
-  prov-ca-init:
-    build:
-      target: online-ca
-    env_file:
-      - ./dev/dev.env
-      - ./dev/local.env
-    volumes:
-      - "./dev/secrets/kms/prov-ca.credentials:/secrets/prov-ca.credentials"
-      - "./dev/data/prov-ca:/home/step"
-      - "./dev/data/tls/roots.fullchain.pem:/config/anchors/roots.fullchain.pem"
-      - "./dev/data/tls/root-a1.crt.pem:/config/anchors/tls/root-a1.crt"
-      - "./dev/data/tls/root-b1.crt.pem:/config/anchors/tls/root-b1.crt"
-      - "./dev/prov-ca.tpl:/home/step/prov-ca.tpl"
-    tmpfs:
-      - "/home/step/secrets"
-    command: [ "/bin/sh", "-c",
-       "[ -f .bootstrapped ] && exit 0 ; touch .bootstrapped ; \
-       step ca provisioner add hosts --type ACME && \
-       step ca provisioner remove bootstrap && \
-       step certificate create 'Example Enterprises Provisioning CA' intermediate_ca.req.pem --csr --template prov-ca.tpl --key secrets/intermediate_ca_key --password-file secrets/password" ]
-    environment:
-      VAULT_CACERT: /config/anchors/roots.fullchain.pem
-      CA_WRAPPER_NAME: prov-ca
-      PROV_CREDENTIALS_FILE: /secrets/prov-ca.credentials
-      PROV_TLS_ANCHORS_DIR: /config/anchors/tls
-      DOCKER_STEPCA_INIT_NAME: Example Enterprises Provisioning
-      DOCKER_STEPCA_INIT_DNS_NAMES: prov-ca
-      DOCKER_STEPCA_INIT_PROVISIONER_NAME: bootstrap
-    depends_on:
-      kms-init:
-        condition: service_completed_successfully
-      kms:
-        condition: service_healthy
-    networks:
-      - iamnet
-  sign-prov-x1:
+  kms-cert:
     build:
       target: offline-ca
+    network_mode: none
     volumes:
       - "./dev/data/inter-x1:/app/db"
-      - "./dev/inter-x1.cnf:/app/db/openssl.cnf:ro"
+      - "./dev/offline-ca/inter-x1.cnf:/app/db/openssl.cnf:ro"
       - "./dev/data/tls:/app/certs"
       - "./dev/data/tls:/app/requests"
       - "./dev/data/tls:/app/keys"
       - "./dev/secrets/inter-x1:/app/private"
-      - "./dev/data/prov-ca/intermediate_ca.req.pem:/app/requests/prov-ca.req.pem"
-      - "./dev/secrets/kms/inter-ca.credentials:/secrets/inter-ca.credentials"
     env_file:
       - ./dev/dev.env
       - ./dev/local.env
+    depends_on:
+      kms-csr:
+        condition: service_completed_successfully
+      merge-x1:
+        condition: service_completed_successfully
     environment:
       CA_NAME: inter-x1
-      PROV_CREDENTIALS_FILE: /secrets/inter-ca.credentials
-      PROV_TLS_ANCHORS_DIR: /config/anchors/tls
-      VAULT_CACERT: /app/certs/roots.fullchain.pem
-    depends_on:
-      prov-ca-init:
-        condition: service_completed_successfully
-    entrypoint: /app/libexec/provision
-    command: [ "/app/entrypoint", "sign-store", "prov-ca", "prov_ca" ]
-    networks:
-      - iamnet
-  prov-ca:
-    volumes:
-      - "./dev/secrets/kms/prov-ca.credentials:/secrets/prov-ca.credentials"
-      - "./dev/data/tls/roots.fullchain.pem:/config/anchors/tls/roots.fullchain.pem"
-      - "./dev/data/tls/root-a1.crt.pem:/config/anchors/tls/root-a1.crt"
-      - "./dev/data/tls/root-b1.crt.pem:/config/anchors/tls/root-b1.crt"
-    environment:
-      VAULT_CACERT: /config/anchors/tls/roots.fullchain.pem
-      CA_WRAPPER_NAME: prov-ca
-      PROV_CREDENTIALS_FILE: /secrets/prov-ca.credentials
-      PROV_TLS_ANCHORS_DIR: /config/anchors/tls
-    depends_on:
-      sign-prov-x1:
-        condition: service_completed_successfully
-#  infra-ca:
-#    depends_on:
-#      inter-ca:
-#        condition: service_healthy
-#  user-ca:
-#    depends_on:
-#      inter-ca:
-#        condition: service_healthy
-#    depends_on:
-#      kms:
-#        condition: service_healthy
+    command: [ "sign", "kms", "kms" ]

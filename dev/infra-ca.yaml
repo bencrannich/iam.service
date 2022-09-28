@@ -1,0 +1,105 @@
+version: '3.3'
+services:
+# In development, the infrastructure CA is configured as a StepCA instance
+# as a subordinate to our offline intermediate, X1. The infrastructure CA
+# issues certificates to services which form part of the realm's core
+# infrastructure-in our case, this means the directory service and
+# kerberos KDC (and any other services which use TLS or X.509 certificates)
+#
+# Each service certificate (which is the certificate presented to clients
+# connecting to that service) is individually templated and issued by
+# a different provisioner
+#
+# In practice, in production, it may be sufficient just to deploy an ACME
+# provisioner accessible only within the stack and configure the services
+# to use that, your mileage (and requirements) may very
+  infra-ca:
+    volumes:
+      - "./dev/secrets/kms/infra-ca.credentials:/secrets/infra-ca.credentials"
+      - "./dev/data/tls/roots.fullchain.pem:/config/anchors/tls/roots.fullchain.pem"
+      - "./dev/data/tls/root-a1.crt.pem:/config/anchors/tls/root-a1.crt"
+      - "./dev/data/tls/root-b1.crt.pem:/config/anchors/tls/root-b1.crt"
+    environment:
+      VAULT_CACERT: /config/anchors/tls/roots.fullchain.pem
+      CA_WRAPPER_NAME: infra-ca
+      PROV_CREDENTIALS_FILE: /secrets/infra-ca.credentials
+      PROV_TLS_ANCHORS_DIR: /config/anchors/tls
+    depends_on:
+      prov-ca:
+        condition: service_healthy
+      sign-infra-x1:
+        condition: service_completed_successfully
+  ds:
+    environment:
+      PROV_STEP_URL: https://infra-ca:9000
+      STEP_CA_PROVISIONER: ds
+    depends_on:
+      infra-ca:
+        condition: service_healthy
+  infra-ca-init:
+    build:
+      target: online-ca
+    env_file:
+      - ./dev/dev.env
+      - ./dev/local.env
+    volumes:
+      - "./dev/secrets/kms/infra-ca.credentials:/secrets/infra-ca.credentials"
+      - "./dev/data/infra-ca:/home/step"
+      - "./dev/data/tls/roots.fullchain.pem:/config/anchors/tls/roots.fullchain.pem"
+      - "./dev/data/tls/root-a1.crt.pem:/config/anchors/tls/root-a1.crt"
+      - "./dev/data/tls/root-b1.crt.pem:/config/anchors/tls/root-b1.crt"
+      - "./dev/online-ca/infra-ca.tpl:/home/step/templates/infra-ca.tpl"
+      - "./dev/online-ca/infra-ca-hosts.tpl:/home/step/templates/infra-ca-hosts.tpl"
+    tmpfs:
+      - "/home/step/secrets"
+    command: [ "/bin/sh", "-c",
+       "[ -f .bootstrapped ] && exit 0 ; touch .bootstrapped ; \
+       step ca provisioner remove bootstrap && \
+       vault kv get -field pem secret/prov-ca/intermediate_ca_crt > prov-ca.pem && \
+       step ca provisioner add ds --type=X5C --x5c-root=prov-ca.pem --x509-template=templates/infra-ca-hosts.tpl && \
+       step ca provisioner add kdc --type=X5C --x5c-root=prov-ca.pem --x509-template=templates/infra-ca-hosts.tpl && \
+       step certificate create 'Example Enterprises Infrastructure CA' intermediate_ca.req.pem --csr --template templates/infra-ca.tpl --key secrets/intermediate_ca_key --password-file secrets/password" ]
+    environment:
+      VAULT_CACERT: /config/anchors/tls/roots.fullchain.pem
+      CA_WRAPPER_NAME: infra-ca
+      PROV_CREDENTIALS_FILE: /secrets/infra-ca.credentials
+      PROV_TLS_ANCHORS_DIR: /config/anchors/tls
+      DOCKER_STEPCA_INIT_NAME: Example Enterprises Infrastructure
+      DOCKER_STEPCA_INIT_DNS_NAMES: infra-ca
+      DOCKER_STEPCA_INIT_PROVISIONER_NAME: bootstrap
+    depends_on:
+      kms-init:
+        condition: service_completed_successfully
+      kms:
+        condition: service_healthy
+      prov-ca:
+        condition: service_healthy
+    networks:
+      - iamnet
+  sign-infra-x1:
+    build:
+      target: offline-ca
+    volumes:
+      - "./dev/data/inter-x1:/app/db"
+      - "./dev/offline-ca/inter-x1.cnf:/app/db/openssl.cnf:ro"
+      - "./dev/data/tls:/app/certs"
+      - "./dev/data/tls:/app/requests"
+      - "./dev/data/tls:/app/keys"
+      - "./dev/secrets/inter-x1:/app/private"
+      - "./dev/data/infra-ca/intermediate_ca.req.pem:/app/requests/infra-ca.req.pem"
+      - "./dev/secrets/kms/inter-ca.credentials:/secrets/inter-ca.credentials"
+    env_file:
+      - ./dev/dev.env
+      - ./dev/local.env
+    environment:
+      CA_NAME: inter-x1
+      PROV_CREDENTIALS_FILE: /secrets/inter-ca.credentials
+      PROV_TLS_ANCHORS_DIR: /config/anchors/tls
+      VAULT_CACERT: /app/certs/roots.fullchain.pem
+    depends_on:
+      infra-ca-init:
+        condition: service_completed_successfully
+    entrypoint: /app/libexec/provision
+    command: [ "/app/entrypoint", "sign-store", "infra-ca", "infra_ca" ]
+    networks:
+      - iamnet

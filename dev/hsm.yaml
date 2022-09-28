@@ -113,6 +113,14 @@ services:
       - pkcs11-x1:/run/p11-kit
     env_file:
       - ./dev/token-x1.env
+  sign-infra-x1:
+    depends_on:
+      hsm-x1:
+        condition: service_healthy
+    volumes:
+      - pkcs11-x1:/run/p11-kit
+    env_file:
+      - ./dev/token-x1.env
   client:
     depends_on:
       hsm-user:

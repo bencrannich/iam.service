@@ -1,7 +1,7 @@
 {
 	"subject": {
-		"commonName": "Example Enterprises Provisioning CA",
-		"organization": "Example Enterprises"
+		"organization": "Example Enterprises",
+		"commonName": "Example Enterprises Infrastructure CA"
 	},
 	"keyUsage": [ "certSign", "crlSign", "digitalSignature" ],
 	"basicConstraints": {

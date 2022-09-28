@@ -25,7 +25,7 @@ COMPOSE=${COMPOSE:-'docker compose'}
 IAM_DEV_NAME=${IAM_DEV_NAME:-'iamdev'}
 IAM_DEV_LIGHT=${IAM_DEV_LIGHT:-NO}
 
-infra_yaml="-f dev/hsm.yaml -f dev/root-ca.yaml -f dev/inter-ca.yaml -f dev/kms.yaml"
+infra_yaml="-f dev/hsm.yaml -f dev/root-ca.yaml -f dev/inter-ca.yaml -f dev/kms.yaml -f dev/prov-ca.yaml -f dev/infra-ca.yaml -f dev/user-ca.yaml"
 client_yaml=""
 
 is_true() {
@@ -54,9 +54,10 @@ IAM_DEV_CLIENT=${IAM_DEV_CLIENT:-YES}
 is_true "${IAM_DEV_CLIENT}" && client_yaml="-f dev/client.yaml"
 
 mkdir -p dev/data
-ensure_exists dev/ds-step.env
 ensure_exists dev/secrets/kms/inter-ca.credentials
 ensure_exists dev/secrets/kms/prov-ca.credentials
+ensure_exists dev/secrets/kms/infra-ca.credentials
+ensure_exists dev/secrets/kms/user-ca.credentials
 
 ## dev/local.env is included for any environment overrides you want to
 ## apply - it's excluded from git and touched here only to guarantee

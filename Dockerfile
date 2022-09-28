@@ -99,12 +99,15 @@ EXPOSE 636
 
 VOLUME [ "/app/db", "/app/config", "/var/run/slapd" ]
 
-RUN mkdir -p /app /app/share/templates /app/share/schema /app/db
+RUN mkdir -p /app /app/libexec /app/share/templates /app/share/schema /app/db
 
 COPY ds/entrypoint /app/entrypoint
+COPY ds/healthcheck /app/healthcheck
+COPY ds/server /app/libexec/server
 ADD ds/templates/ /app/share/templates/
 ADD ds/schema/ /app/share/schema/
-
+RUN chmod +x /app/entrypoint /app/healthcheck /app/libexec/server
+HEALTHCHECK --interval=5s --timeout=30s --start-period=5s --retries=3 CMD [ "/app/healthcheck" ]
 ENTRYPOINT [ "/app/entrypoint" ]
 CMD [ "run" ]
 
@@ -159,8 +162,11 @@ EXPOSE 464/udp
 COPY kdc/kdc.conf.in /app/etc/kdc.conf.in
 COPY kdc/krb5.kdc.conf.in /app/etc/krb5.conf.in
 COPY kdc/entrypoint.kdc /app/entrypoint
+COPY kdc/healthcheck /app/healthcheck
+RUN chmod +x /app/entrypoint /app/healthcheck
 ENTRYPOINT [ "/app/entrypoint" ]
 CMD [ "run" ]
+HEALTHCHECK --interval=5s --timeout=30s --start-period=5s --retries=3 CMD [ "/app/healthcheck" ]
 
 ## Kerberos Administration Service (kadmin) container
 
@@ -171,5 +177,8 @@ EXPOSE 749/udp
 COPY kdc/kadmin.conf.in /app/etc/kadmin.conf.in
 COPY kdc/krb5.kadmin.conf.in /app/etc/krb5.conf.in
 COPY kdc/entrypoint.kadmin /app/entrypoint
+COPY kdc/healthcheck /app/healthcheck
+RUN chmod +x /app/entrypoint /app/healthcheck
 ENTRYPOINT [ "/app/entrypoint" ]
 CMD [ "run" ]
+HEALTHCHECK --interval=5s --timeout=30s --start-period=5s --retries=3 CMD [ "/app/healthcheck" ]
