@@ -128,14 +128,11 @@ openssl req -new \
         condition: service_completed_successfully
       kms:
         condition: service_healthy
-#  client:
-#   environment:
-#    VAULT_ADDR: https://kms
-#    VAULT_CACERT: /certs/roots.fullchain.pem
-#   volumes:
-#      - "./dev/data/tls:/certs:ro"
-#    depends_on:
-#      kms-init:
-#        condition: service_completed_successfully
-#      kms:
-#        condition: service_healthy
+  client:
+    environment:
+      VAULT_ADDR: https://kms
+    depends_on:
+      kms-init:
+        condition: service_completed_successfully
+      kms:
+        condition: service_healthy

@@ -8,7 +8,7 @@
 ## pathname and arguments and `exec`'d once provisioning is complete (making
 ## this script suitable as a rudimentary Docker `ENTRYPOINT`)
 
-set -e
+#set -e
 
 log() {
 	printf "provision: $*\n" >&2
@@ -65,7 +65,7 @@ if ! [ -z "${PROV_STEP_URL}" ] ; then
 		fi
 	fi
 	log "connecting to Step CA ${PROV_STEP_URL}"
-	step ca bootstrap --ca-url "${PROV_STEP_URL}" --fingerprint ${PROV_STEP_FINGERPRINT} --install
+	step ca bootstrap --ca-url "${PROV_STEP_URL}" --fingerprint ${PROV_STEP_FINGERPRINT} --install --force
 fi
 
 if ! [ -z "${PROV_VAULT_ADDR}" ] ; then
@@ -96,7 +96,7 @@ if ! [ -z "${VAULT_ADDR}" ] ; then
 		set +e
 		msg=no
 		while true ; do
-			vault status
+			vault status >/dev/null
 			st=$?
 			if [ $st -eq 0 ] ; then
 				break
@@ -107,7 +107,8 @@ if ! [ -z "${VAULT_ADDR}" ] ; then
 			fi
 			sleep 1
 		done
-		log "KMS is available"
+		[ "$msg" = "yes" ] && log "KMS is available"
+		vault token lookup
 	fi		
 fi
 

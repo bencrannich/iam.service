@@ -293,8 +293,17 @@ case "$1" in
 		fi
 		ca_sign "$@"
 		log "writing root and intermediate certificates to KMS"
+		log "- updating secret/data/$1/root_ca_cert"
 		cat ${CERTS}/root-a1.crt.pem | vault kv put -mount secret "$1/root_ca_crt" pem=-
+		log "- updating secret/data/$1/intermediate_ca_cert"
 		cat ${CERTS}/$1.${CA_NAME}.crt.pem ${CERTS}/${CA_NAME}.fullchain.pem | vault kv put -mount secret "$1/intermediate_ca_crt" pem=-
+		# XXX XXX XXX XXX
+#		if [ "$1" = "prov-ca" ] ; then
+#			for entity in infra-ca user-ca ds kdc kadmin ; do
+#				log "- updating auth/cert/certs/${entity}"
+#				cat ${CERTS}/$1.${CA_NAME}.crt.pem | vault write auth/cert/certs/${entity} certificate=- policies="${entity}" allowed_dns_sans="${entity}" required_extensions="oid:1.3.6.1.4.1.58118.113.1"
+#			done
+#		fi
 		;;
 	*)
 		log "unsupported command '$1' (expected 'sign' or 'sign-store')"

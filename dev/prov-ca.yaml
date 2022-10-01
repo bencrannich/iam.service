@@ -96,7 +96,7 @@ services:
       - "/home/step/secrets"
     command: [ "/bin/sh", "-c",
        "[ -f .bootstrapped ] && exit 0 ; touch .bootstrapped ; \
-       step ca provisioner remove bootstrap && \
+       true step ca provisioner remove bootstrap && \
        step ca provisioner add hosts --type ACME --x509-template=templates/prov-ca-hosts.tpl --force-cn && \
        step certificate create 'Example Enterprises Provisioning CA' intermediate_ca.req.pem --csr --template templates/prov-ca.tpl --key secrets/intermediate_ca_key --password-file secrets/password" ]
     environment:
