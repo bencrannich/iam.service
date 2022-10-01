@@ -8,7 +8,7 @@ This stack contains:
 * ~~certificate authorities (Step)~~ (these are no longer included in the core stack for flexibility)
 * TODO: RADIUS accounting service
 
-It is **NOT** remotely production-ready
+ It is **NOT** remotely production-ready
 
 There's no kpasswdd because user accounts (and indeed ideally service accounts)
 should use PKINIT
@@ -116,6 +116,8 @@ An `Account` represents any entity that has its own security identity (in Kerber
 …
 
 ## Certificate authorities and purposes
+
+![Diagram showing a typical arrangement of certificate authorities](https://github.com/bencrannich/iam.service/blob/master/docs/pki.png?raw=true)
 
 Certificates within a realm are routinely issued to:
 
