@@ -117,7 +117,7 @@ An `Account` represents any entity that has its own security identity (in Kerber
 
 ## Certificate authorities and purposes
 
-![Diagram showing a typical arrangement of certificate authorities](https://raw.githubusercontent.com/bencrannich/iam.service/default/docs/pki.png)
+![Diagram showing a typical arrangement of certificate authorities](https://raw.githubusercontent.com/bencrannich/iam.service/default/docs/pki.png | width=100%)
 
 Certificates within a realm are routinely issued to:
 
