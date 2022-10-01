@@ -14,6 +14,12 @@ services:
 # provisioner accessible only within the stack and configure the services
 # to use that, your mileage (and requirements) may very
   infra-ca:
+    build:
+      target: online-ca
+    tmpfs:
+      - "/home/step/secrets:mode=0700,uid=1000,gid=1000"
+    networks:
+      - iamnet
     volumes:
       - "./dev/secrets/kms/infra-ca.credentials:/secrets/infra-ca.credentials"
       - "./dev/data/tls/roots.fullchain.pem:/config/anchors/tls/roots.fullchain.pem"

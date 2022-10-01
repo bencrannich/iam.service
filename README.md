@@ -5,7 +5,7 @@ This stack contains:
 * `ds`: an LDAP directory service (OpenLDAP)
 * `kdc`: an authentication service (Heimdal Kerberos V KDC)
 * `kadmin`: a Kerberos administration server (Heimdal Kerberos V kadmind)
-* TODO: certificate authorities (Step)
+* ~~certificate authorities (Step)~~ (these are no longer included in the core stack for flexibility)
 * TODO: RADIUS accounting service
 
 It is **NOT** remotely production-ready
@@ -298,7 +298,6 @@ docker compose --project-name iamdev -f docker-compose.yaml -f dev/hsm.yaml -f d
 
 docker compose --project-name iamdev -f docker-compose.yaml -f dev/hsm.yaml -f dev/root-ca.yaml -f dev/inter-ca.yaml -f dev/kms.yaml -f dev/prov-ca.yaml -f dev/infra-ca.yaml -f dev/user-ca.yaml -f dev/client.yaml -f dev/overrides.yaml -f dev/local.yaml up -V --wait client
 ```
-
 
 The initial user account (and its associated role instances) are created based
 upon values set in `dev/dev.env`. By default, this creates a user named `me`

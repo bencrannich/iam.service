@@ -8,28 +8,17 @@ services:
       - slaprun:/var/run/slapd
     networks:
       - iamnet
-    depends_on:
-      infra-ca:
-        condition: service_healthy
-#    environment:
-#      PROV_ACME_REQNAME: ds
   kdc:
     restart: unless-stopped
     build:
       target: kdc
     depends_on:
-      infra-ca:
-        condition: service_healthy
-      user-ca:
-        condition: service_healthy
       ds:
         condition: service_healthy
     volumes:
       - slaprun:/var/run/slapd
     networks:
       - iamnet
-#    environment:
-#      PROV_ACME_REQNAME: kdc
   kadmin:
     restart: unless-stopped
     build:
@@ -43,29 +32,6 @@ services:
       - "127.0.0.1:749:749/udp"
     volumes:
       - slaprun:/var/run/slapd
-    networks:
-      - iamnet
-#    environment:
-#      PROV_ACME_REQNAME: kadmin
-  prov-ca:
-    build:
-      target: online-ca
-    tmpfs:
-      - "/home/step/secrets:mode=0700,uid=1000,gid=1000"
-    networks:
-      - iamnet
-  infra-ca:
-    build:
-      target: online-ca
-    tmpfs:
-      - "/home/step/secrets:mode=0700,uid=1000,gid=1000"
-    networks:
-      - iamnet
-  user-ca:
-    build:
-      target: online-ca
-    tmpfs:
-      - "/home/step/secrets:mode=0700,uid=1000,gid=1000"
     networks:
       - iamnet
 volumes:

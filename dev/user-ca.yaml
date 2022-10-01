@@ -1,1 +1,9 @@
 version: '3.3'
+services:
+  user-ca:
+    build:
+      target: online-ca
+    tmpfs:
+      - "/home/step/secrets:mode=0700,uid=1000,gid=1000"
+    networks:
+      - iamnet
