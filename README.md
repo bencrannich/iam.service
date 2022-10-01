@@ -259,6 +259,9 @@ and Kerberos KDC, these files also define:
 * An instance of Hashicorp Vault to act as a secrets/key manager (KMS)
 * Setup and configuration for the online CAs so that they are integrated with the PKI and Vault
 
+<img alt="High-level architecture of the development environment" src="https://raw.githubusercontent.com/bencrannich/iam.service/default/docs/iamdev.png" width="100%">
+
+
 All of this should bootstrap automatically. On an M1 MacBook Pro, a full stack
 takes between 30-60 seconds to reach a healthy state across the board from a
 standing start (i.e., freshly initialising a realm and all secrets from
