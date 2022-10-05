@@ -117,7 +117,32 @@ An `Account` represents any entity that has its own security identity (in Kerber
 
 ## Certificate authorities and purposes
 
-<img alt="Diagram showing a typical arrangement of certificate authorities" src="https://raw.githubusercontent.com/bencrannich/iam.service/default/docs/pki.png" width="100%">
+```mermaid
+graph TD;
+  root_a1(Root CA A1) --> inter_x1(Intermediate<br/>CA X1);
+  root_b1(Root CA B1) --> inter_x1;
+  inter_x1 --> prov_ca[Provisioning CA];
+  inter_x1 --> infra_ca[Infrastructure<br/>Services CA];
+  inter_x1 --> roles_ca[Roles CA];
+  inter_x1 --> user_ca[Users CA];
+  prov_ca --> token_ra[Token<br/>Provisioning RA];
+  prov_ca --> device_ra[Device<br/>Provisioning RA];
+  prov_ca --> container_ra[On-site Container<br/>Provisioning RA];
+  prov_ca --> gcp_ra[GCP RA];
+  prov_ca --> aws_ra[AWS RA];
+
+  style root_a1 fill:#222,stroke:#822;
+  style root_b1 fill:#222,stroke:#822;
+  style inter_x1 fill:#222,stroke:#882;
+
+  style prov_ca stroke:#282;
+  style infra_ca stroke:#282;
+  style roles_ca stroke:#282;
+  style user_ca stroke:#282;
+
+  style gcp_ra stroke-dasharray:1 1;
+  style aws_ra stroke-dasharray:1 1;
+```
 
 Certificates within a realm are routinely issued to:
 
