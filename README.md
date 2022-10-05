@@ -284,7 +284,58 @@ and Kerberos KDC, these files also define:
 * An instance of Hashicorp Vault to act as a secrets/key manager (KMS)
 * Setup and configuration for the online CAs so that they are integrated with the PKI and Vault
 
-<img alt="High-level architecture of the development environment" src="https://raw.githubusercontent.com/bencrannich/iam.service/default/docs/iamdev.png" width="100%">
+```mermaid
+flowchart
+  subgraph offline ["Offline Test PKI"]
+
+    subgraph a1 ["Root CA A1"]
+      direction LR
+      root_a1[root-a1] --> pkcs_a1[(pkcs-a1)]
+      hsm_a1[hsm-a1] --> pkcs_a1
+    end
+
+    subgraph b1 ["Root CA B1"]
+      direction LR
+      root_b1[root-b1] --> pkcs_b1[(pkcs-b1)]
+      hsm_b1[hsm-b1] --> pkcs_b1
+    end
+
+    a1 --> x1
+    b1 --> x1
+
+    subgraph x1 ["Intermediate CA X1"]
+      direction LR
+      inter_x1[inter-x1] --> pkcs_x1[(pkcs-x1)];
+      hsm_x1[hsm-x1] --> pkcs_x1;
+    end
+
+  end
+  
+  subgraph online_ca ["Online Test PKI"]
+    x1 --> kms;
+    x1 --> prov_ca[prov-ca] --> kms;
+    x1 --> infra_ca[infra-ca] --> kms;
+    x1 --> user_ca[user-ca] --> kms;
+  end
+
+  subgraph core ["IAM core"]
+    ds; kdc; kadmin;
+    ds --> slaprun[(slaprun)];
+    kdc --> slaprun;
+    kadmin --> slaprun;
+
+    infra_ca --> ds & kdc;
+    kdc & kadmin --> kms;
+  end
+
+  subgraph client_env ["Client environment"]
+    direction LR
+    client --> pkcs11_user[(pkcs11-user)];
+    hsm_user[hsm-user] --> pkcs11_user;
+    client --> ds & kdc;
+  end
+  ```
+
 
 
 All of this should bootstrap automatically. On an M1 MacBook Pro, a full stack
