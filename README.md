@@ -107,6 +107,208 @@ server), and do so with relatively light configuration and following standard pa
 
 ## Data model
 
+### Example
+
+```mermaid
+classDiagram
+
+  class Example {
+    <<Realm>>
+    DN: O=Example Enterprises, C=CA
+    O: Example Enterprises
+    objectClass: top
+    objectClass: organization
+    objectClass: realm
+    objectClass: krb5Realm
+    dNSDomainName: example.ca
+    krb5RealmName: EXAMPLE.CA
+  }
+
+  class Users {
+    <<Container>>
+    DN: CN=Users, …
+    CN: Users
+    objectClass: top
+    objectClass: container
+  }
+  Example -- Users
+
+  class ServiceAccounts {
+    <<Container>>
+    DN: CN=Service Accounts, …
+    CN: Service Accounts
+    objectClass: top
+    objectClass: container
+  }
+  Example -- ServiceAccounts
+
+  class Groups {
+    <<Container>>
+    DN: CN=Groups, …
+    CN: Groups
+    objectClass: top
+    objectClass: container
+  }
+  Example -- Groups
+
+  class Contacts {
+    <<Container>>
+    DN: CN=Contacts, …
+    CN: Contacts
+    objectClass: top
+    objectClass: container
+  }
+  Example -- Contacts
+
+
+  class User {
+    <<UserAccount>>
+    DN: CN=Otto Normalbenutzer, …
+    CN: Otto NormalBenutzer
+    UID: otto
+    objectClass: top
+    objectClass: account
+    objectClass: userAccount
+    objectClass: krb5Principal
+    objectClass: krb5KDCEntry
+    objectClass: posixAccount
+    objectClass: posixGroup
+    uidNumber: 5000
+    gidNumber: 5000
+    homeDirectory: /fs/u14/otto
+    loginShell: /bin/zsh
+    gecos: Otto Normalbenutzer
+    krb5PrincipalName: otto@EXAMPLE.CA
+    krb5KDCFlags: 126
+    krb5KeyVersionNumber: 0
+    krb5ExtendedAttributes:: …
+  }
+  Users -- User
+
+  class UserAdminRoleInstance {
+    <<RoleInstance>>
+    DN: CN=Kerberos Administrator, …
+    CN: Kerberos Administrator
+    UID: otto/admin
+    objectClass: top
+    objectClass: account
+    objectClass: roleInstance
+    objectClass: krb5Principal
+    objectClass: krb5KDCEntry
+    krb5PrincipalName: otto/admin@EXAMPLE.CA
+    krb5KDCFlags: 126
+    krb5KeyVersionNumber: 0
+    krb5ExtendedAttributes:: …
+    role: CN=Kerberos Administrator, CN=Roles, O=Example Enterprises, C=CA
+  }
+  User -- UserAdminRoleInstance
+
+```
+
+### Class Hierarchy
+
+```mermaid
+classDiagram
+
+  class realm {
+    <<auxiliary>>
+    DirectoryString description
+    DirectoryString dNSDomainName
+    DirectoryString krb5RealmName
+  }
+
+  class certificateEntity {
+    <<auxiliary>>
+    binary userCertificate
+    binary caCertificate
+    DN issuer
+  }
+
+  class container {
+    <<structural>>
+    DirectoryString CN$
+    DirectoryString description
+  }
+
+  class service {
+    DirectoryString CN$
+    DirectoryString description
+  }
+
+  class serviceGroup {
+    <<structural>>
+    DirectoryString CN$
+    DirectoryString description
+  }
+
+  container <|-- service
+  container <|-- serviceGroup
+
+  class serviceInstance {
+    DirectoryString svc$
+    DirectoryString CN
+    DirectoryString description
+    DirectoryString advertisedServiceName
+    int advertisedServicePort
+    DirectoryString advertisedServiceProtocol
+  }
+
+  class serviceNode {
+    DirectoryString node$
+    DirectoryString CN
+    DirectoryString description
+    DirectoryString dNSDomainName
+    DirectoryString advertisedServiceName
+    int advertisedServicePort
+    DirectoryString advertisedServiceProtocol
+
+  }
+
+  class certificate {
+    DirectoryString CN$
+    DirectoryString description
+    DN issuer
+  }
+
+  class environment {
+    DirectoryString ENV$
+    DirectoryString CN
+    DirectoryString description
+  }
+
+  class account {
+    DirectoryString UID$
+    DirectoryString CN
+    DirectoryString description
+    DirectoryString krb5PrincipalName
+    int uidNumber
+    int gidNumber
+    string homeDirectory
+    string gecos
+    string loginShell
+  }
+
+  class role {
+
+  }
+
+  class group {
+    DN member
+  }
+
+  account <|-- role
+  account <|-- serviceAccount
+  account <|-- userAccount
+  account <|-- roleInstance
+  account <|-- group
+
+  class roleInstance {
+    DN role
+  }
+```
+
+### Description
+
 A `Realm` represents the top-level container for everything within a single management realm. It's an auxiliary class, and so is typically added to an `Organization` or `OrganizationalUnit` instance (although a realm could in principle be anything). A `Realm` may have a `description`, `dNSDomainName`, and `krb5RealmName`; the latter two will always be present under normal circumstances.
 
 A `Container` is a generic container of other objects. It must have a Common Name (`CN`), and may have a `description`.
@@ -300,8 +502,8 @@ flowchart
       hsm_b1[hsm-b1] --> pkcs_b1
     end
 
-    a1 --> x1
-    b1 --> x1
+    a1 -. signs .-> x1
+    b1 -. signs .-> x1
 
     subgraph x1 ["Intermediate CA X1"]
       direction LR
@@ -311,29 +513,47 @@ flowchart
 
   end
   
-  subgraph online_ca ["Online Test PKI"]
-    x1 --> kms;
-    x1 --> prov_ca[prov-ca] --> kms;
-    x1 --> infra_ca[infra-ca] --> kms;
-    x1 --> user_ca[user-ca] --> kms;
+  subgraph kms_env ["Test KMS"]
+    kms;
   end
 
-  subgraph core ["IAM core"]
+  subgraph online_ca ["Online Test PKI"]
+    x1 --> kms
+    prov_ca --> kms
+    infra_ca --> kms
+    user_ca --> kms
+  end
+
+%%    x1 -. signs .-> prov_ca[prov-ca]
+%%    x1 -. signs .-> infra_ca[infra-ca]
+%%    x1 -. signs .-> user_ca[user-ca]
+
+  subgraph iam_core ["IAM core"]
     ds; kdc; kadmin;
     ds --> slaprun[(slaprun)];
     kdc --> slaprun;
     kadmin --> slaprun;
 
-    infra_ca --> ds & kdc;
+    %% infra_ca -. issues .-> ds & kdc;
     kdc & kadmin --> kms;
   end
 
-  subgraph client_env ["Client environment"]
-    direction LR
-    client --> pkcs11_user[(pkcs11-user)];
-    hsm_user[hsm-user] --> pkcs11_user;
-    client --> ds & kdc;
+  subgraph inner [" "]
+    subgraph client_env ["Client"]
+      direction LR
+      client --> pkcs11_user[(pkcs11-user)];
+      hsm_user[hsm-user] --> pkcs11_user;
+    end
+    client_env --> ds & kdc;
+
+    subgraph admin_env ["Adminstrator"]
+      direction LR
+      admin --> pkcs11_admin[(pkcs11-admin)];
+      hsm_admin[hsm-admin] --> pkcs11_admin;
+    end
+    admin_env --> ds & kdc & kadmin;
   end
+
   ```
 
 
