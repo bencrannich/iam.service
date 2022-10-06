@@ -105,217 +105,82 @@ operating systems (particularly Linux, macOS, iOS, and Android),
 and afford integration with other services (such as NFS and a DHCP
 server), and do so with relatively light configuration and following standard patterns where possible.
 
-## Data model
+## Standards
 
-### Example
+### ITU-T Recommendations
 
-```mermaid
-classDiagram
+Much of the stack is defined by initially the ITU-T X.500 family of
+recommendations, which were originally intended to define a complete, global,
+interconnected directory-based infrastructure. Whilst this did not ever
+reach fruition, the following recommendations form the basis of standards
+followed today:
 
-  class Example {
-    <<Realm>>
-    DN: O=Example Enterprises, C=CA
-    O: Example Enterprises
-    objectClass: top
-    objectClass: organization
-    objectClass: realm
-    objectClass: krb5Realm
-    dNSDomainName: example.ca
-    krb5RealmName: EXAMPLE.CA
-  }
+  Document | Title
+ ----------|--------
+  X.509    | The Directory: Public-key and attribute certificate frameworks
+  X.520    | The Directory: Selected attribute types
+  X.521    | The Directory: Selected object classes
+  X.690    | ASN.1 encoding rules: Specification of Basic Encoding Rules (BER), Canonical Encoding Rules (CER) and Distinguished Encoding Rules (DER)
 
-  class Users {
-    <<Container>>
-    DN: CN=Users, …
-    CN: Users
-    objectClass: top
-    objectClass: container
-  }
-  Example -- Users
+### Lightweight Directory Access Protocol (LDAP)
 
-  class ServiceAccounts {
-    <<Container>>
-    DN: CN=Service Accounts, …
-    CN: Service Accounts
-    objectClass: top
-    objectClass: container
-  }
-  Example -- ServiceAccounts
+In practice, the primary reference material governing this stack are the IETF
+RFCs defining the Lightweight Directory Access Protocol (LDAP), which replaces
+the Directory Access Protocol defined by X.500:
 
-  class Groups {
-    <<Container>>
-    DN: CN=Groups, …
-    CN: Groups
-    objectClass: top
-    objectClass: container
-  }
-  Example -- Groups
+  Document  | Date      | Title
+ -----------|-----------|--------
+  RFC 2589  | 1999-05   | Lightweight Directory Access Protocol (v3): Extensions for Dynamic Directory Services
+  RFC 4510  | 2006-06   | Lightweight Directory Access Protocol (LDAP): Technical Specification Road Map
+  RFC 4511  | 2006-06   | LDAP: The Protocol
+  RFC 4512  | 2006-06   | LDAP: Directory Information Models
+  RFC 4513  | 2006-06   | LDAP: Authentication Methods and Security Mechanisms
+  RFC 4514  | 2006-06   | LDAP: String Representation of Distinguished Names
+  RFC 4515  | 2006-06   | LDAP: String Representation of Search Filters
+  RFC 4516  | 2006-06   | LDAP: Uniform Resource Locator
+  RFC 4517  | 2006-06   | LDAP: Syntaxes and Matching Rules
+  RFC 4518  | 2006-06   | LDAP: Internationalized String Preparation
+  RFC 4519  | 2006-06   | LDAP: Schema for User Applications
 
-  class Contacts {
-    <<Container>>
-    DN: CN=Contacts, …
-    CN: Contacts
-    objectClass: top
-    objectClass: container
-  }
-  Example -- Contacts
+A number of historical RFCs are made reference to, which are listed here:
 
+  Document  | Date      | See also | Title
+ -----------|-----------|----------|--------
+  RFC 1274  | 1991-11   | RFC 4524 | The COSINE and Internet X.500 Schema
+  RFC 2252  | 1997-12   | RFC 4510 | Lightweight Directory Access Protocol (v3): Attribute Syntax Definitions
+  RFC 2256  | 1997-12   | RFC 4510 | A Summary of the X.500(96) User Schema for use with LDAPv3
+  RFC 2587  | 1999-06   | RFC 4523 | Internet X.509 Public Key Infrastructure LDAPv2 Schema
+  RFC 2830  | 2000-05   | RFC 4513 | Lightweight Directory Access Protocol (v3): Extension for Transport Layer Security
+  RFC 3377  | 2002-09   | RFC 4510 | Lightweight Directory Access Protocol (v3): Technical Specification
 
-  class User {
-    <<UserAccount>>
-    DN: CN=Otto Normalbenutzer, …
-    CN: Otto NormalBenutzer
-    UID: otto
-    objectClass: top
-    objectClass: account
-    objectClass: userAccount
-    objectClass: krb5Principal
-    objectClass: krb5KDCEntry
-    objectClass: posixAccount
-    objectClass: posixGroup
-    uidNumber: 5000
-    gidNumber: 5000
-    homeDirectory: /fs/u14/otto
-    loginShell: /bin/zsh
-    gecos: Otto Normalbenutzer
-    krb5PrincipalName: otto@EXAMPLE.CA
-    krb5KDCFlags: 126
-    krb5KeyVersionNumber: 0
-    krb5ExtendedAttributes:: …
-  }
-  Users -- User
+### Additional LDAP schema definitions and references
 
-  class UserAdminRoleInstance {
-    <<RoleInstance>>
-    DN: CN=Kerberos Administrator, …
-    CN: Kerberos Administrator
-    UID: otto/admin
-    objectClass: top
-    objectClass: account
-    objectClass: roleInstance
-    objectClass: krb5Principal
-    objectClass: krb5KDCEntry
-    krb5PrincipalName: otto/admin@EXAMPLE.CA
-    krb5KDCFlags: 126
-    krb5KeyVersionNumber: 0
-    krb5ExtendedAttributes:: …
-    role: CN=Kerberos Administrator, CN=Roles, O=Example Enterprises, C=CA
-  }
-  User -- UserAdminRoleInstance
+  Document    | Date      | Title
+ -------------|-----------|--------
+  RFC 2079    | 1997-01   | Definition of an X.500 Attribute Type and an Object Class to Hold Uniform Resource Identifiers (URIs)
+  RFC 2247    | 1998-01   | Using Domains in LDAP/X.500 Distinguished Names
+  RFC 2307    | 1998-03   | An Approach for Using LDAP as a Network Information Service
+  RFC 2377    | 1998-09   | Naming Plan for Internet Directory-Enabled Applications
+  RFC 2798    | 2000-04   | Definition of the inetOrgPerson LDAP Object Class
+  RFC 4523    | 2006-06   | LDAP: Schema Definitions for X.509 Certificates
+  RFC 4524    | 2006-06   | COSINE LDAP/X.500 Schema
+  hdb.schema  | 2015-09   | Heimdal: Definitions for a Kerberos V KDC schema
 
-```
+### Internet X.509 Public Key Infrastructure and Transport Layer Security
 
-### Class Hierarchy
+Current:
 
-```mermaid
-classDiagram
+  RFC         | Date      | Title
+ -------------|-----------|--------
+  RFC 5280    | 2008-05   | Internet X.509 Public Key Infrastructure Certificate and Certificate Revocation List (CRL) Profile
+  RFC 6960    | 2013-06   | X.509 Internet Public Key Infrastructure Online Certificate Status Protocol - OCSP
+  RFC 8446    | 2018-08   | The Transport Layer Security (TLS) Protocol Version 1.3
 
-  class realm {
-    <<auxiliary>>
-    DirectoryString description
-    DirectoryString dNSDomainName
-    DirectoryString krb5RealmName
-  }
+Historical:
 
-  class certificateEntity {
-    <<auxiliary>>
-    binary userCertificate
-    binary caCertificate
-    DN issuer
-  }
-
-  class container {
-    <<structural>>
-    DirectoryString CN$
-    DirectoryString description
-  }
-
-  class service {
-    DirectoryString CN$
-    DirectoryString description
-  }
-
-  class serviceGroup {
-    <<structural>>
-    DirectoryString CN$
-    DirectoryString description
-  }
-
-  container <|-- service
-  container <|-- serviceGroup
-
-  class serviceInstance {
-    DirectoryString svc$
-    DirectoryString CN
-    DirectoryString description
-    DirectoryString advertisedServiceName
-    int advertisedServicePort
-    DirectoryString advertisedServiceProtocol
-  }
-
-  class serviceNode {
-    DirectoryString node$
-    DirectoryString CN
-    DirectoryString description
-    DirectoryString dNSDomainName
-    DirectoryString advertisedServiceName
-    int advertisedServicePort
-    DirectoryString advertisedServiceProtocol
-
-  }
-
-  class certificate {
-    DirectoryString CN$
-    DirectoryString description
-    DN issuer
-  }
-
-  class environment {
-    DirectoryString ENV$
-    DirectoryString CN
-    DirectoryString description
-  }
-
-  class account {
-    DirectoryString UID$
-    DirectoryString CN
-    DirectoryString description
-    DirectoryString krb5PrincipalName
-    int uidNumber
-    int gidNumber
-    string homeDirectory
-    string gecos
-    string loginShell
-  }
-
-  class role {
-
-  }
-
-  class group {
-    DN member
-  }
-
-  account <|-- role
-  account <|-- serviceAccount
-  account <|-- userAccount
-  account <|-- roleInstance
-  account <|-- group
-
-  class roleInstance {
-    DN role
-  }
-```
-
-### Description
-
-A `Realm` represents the top-level container for everything within a single management realm. It's an auxiliary class, and so is typically added to an `Organization` or `OrganizationalUnit` instance (although a realm could in principle be anything). A `Realm` may have a `description`, `dNSDomainName`, and `krb5RealmName`; the latter two will always be present under normal circumstances.
-
-A `Container` is a generic container of other objects. It must have a Common Name (`CN`), and may have a `description`.
-
-An `Account` represents any entity that has its own security identity (in Kerberos terms, a security principal), and there are a number of subclasses for different kinds of account: `Role` (a defined role which confers access to resources), `ServiceAccount` (an account used by a network service in order to access other resources), `UserAccount` (an account issued to a person), `RoleInstance` (an instance of a role conferred upon a particular user account), `Group` (a group of accounts). Not all properties apply usefully to all kinds of account, but an account must have a `uid` and may have a`CN`, `description`, `uidNumber`, `gidNumber`, `homeDirectory`, `loginShell`, `gecos`, and `krb5PrincipalName`.
-
-…
+  RFC         | Date      | See also | Title
+ -------------|-----------|----------|--------
+  RFC 3280    | 2002-04   | RFC 5280 | Internet X.509 Public Key Infrastructure Certificate and Certificate Revocation List (CRL) Profile
 
 ## Certificate authorities and purposes
 
@@ -462,6 +327,822 @@ first time in an area with limited connectivity (obviously if the
 certificate has been revoked, then that will impair any actual to
 resources once that laptop is back online).
 
+## Object model
+
+As the directory service is provided by OpenLDAP, which aims to conform to the
+LDAP standards, the realm data model is broadly defined here in LDAP terms.
+
+### Object Identifiers
+
+An Object Identifier, or more commonly, an OID, is a standard, globally-unique,
+hierarchical system of identifiers used extensively by the ITU in the X.500
+family of standards, and forms an integral part of LDAP, X.509 PKI, and SNMP,
+amongst others. OIDs are registration-based, and operates a federated
+registration model, so there are multiple ways to obtain an OID. Once an OID
+"arc" is assigned to you/your organisation, you are free to create any
+assignments within that as needed.
+
+**Under no circumstances can you invent arbitrary Object Identifiers**
+
+In human-readable form, OIDs consist of a series of non-negative integers
+separated by "." (dots), similar in appearance to IP addresses. Unlike IP
+addresses, OIDs can be any of any length and its constituent integers can
+in principle be very large numbers, but in practice this is rare.
+
+OIDs can be expressed as URIs [in the form of `urn:oid:…` URNs](https://datatracker.ietf.org/doc/html/rfc3001),
+but this is rarely-used in the wild.
+
+OIDs have several standardised binary forms, but in particular that defined
+by the standard Distinguished Encoding Rules (DER) is most widely-used, in
+that it features in many Internet protocol exchanges (and corresponding
+file formats) where OIDs are passed between systems.
+
+OIDs are used within the directory service to identify data types (syntaxes),
+properties (attribute types), and (object) classes. They're also used within
+certificates to identify key usages, policies, and extensions.
+
+Although some of the classes and attributes defined here are assigned
+specifically for this stack, many are defined by external standards and
+included for reference with their assigned OIDs.
+
+### Data types (Syntaxes)
+
+The following syntaxes are supported by [OpenLDAP](https://www.openldap.org/doc/admin26/schema.html):
+
+  Type               | OID                           | Description
+ --------------------|-------------------------------|--------------
+  `Boolean`          | 1.3.6.1.4.1.1466.115.121.1.7  | boolean value
+  `DirectoryString`  | 1.3.6.1.4.1.1466.115.121.1.15 | UTF-8-encoded string
+  `DN`               | 1.3.6.1.4.1.1466.115.121.1.12 | distinguished name
+  `Integer`          | 1.3.6.1.4.1.1466.115.121.1.27 | integer value
+  `NumericString`    | 1.3.6.1.4.1.1466.115.121.1.36 | string containing a numeric value
+  `OID`              | 1.3.6.1.4.1.1466.115.121.1.38 | Object Identifier
+  `OctetString`      | 1.3.6.1.4.1.1466.115.121.1.40 | arbitrary binary octets
+  `PrintableString`  | 1.3.6.1.4.1.1466.115.121.1.44 |
+  `CountryString`    | 1.3.6.1.4.1.1466.115.121.1.11 | encoded as `DirectoryString`
+  `Guide`            | 1.3.6.1.4.1.1466.115.121.1.25 |
+  `IA5String`        | 1.3.6.1.4.1.1466.115.121.1.26 | 7-bit ASCII string
+  `PostalAddress`    | 1.3.6.1.4.1.1466.115.121.1.41 | encoded as a `SEQUENCE` of `DirectoryString`s
+
+### Properties (Attribute Types)
+
+In LDAP terms, properties (attribute types) are defined up-front before the
+classes that reference them. This means that the `description` property, for
+example, is defined throughout the directory as meaning the same thing,
+regardless of what type of object it appears on. This may feel constraining
+if you're used to software development, where a property with a particular
+name could be a boolean in one class and a string in another (in theory),
+but this approach helps to ensure consistent handling of data within the
+directory by the applications that use it.
+
+  Property                                | Source     | Type                  | OID
+ -----------------------------------------|------------|-----------------------|------
+  `objectClass`                           | X.500      | `OID`                 | 2.5.4.0
+  `DN` or `distinguishedName`             | X.500      | `DN`                  | 2.5.4.49
+ | + `seeAlso`                            | X.500      | _(`DN`)_              | 2.5.4.34
+  `aliasedObjectName`                     | X.500      | `DN`                  | 2.5.4.1
+  `knowledgeInformation`                  | X.500      | `DirectoryString`     | 2.5.4.2
+  `name`                                  | X.500      | `DirectoryString`     | 2.5.4.41
+ | + `CN` or `commonName`                 | X.500      | _(`DirectoryString`)_ | 2.5.4.3
+ | + `SN` or `surname`                    | X.500      | _(`DirectoryString`)_ | 2.5.4.4
+ | + `L` or `locality`                    | X.500      | _(`DirectoryString`)_ | 2.5.4.7
+ | + `ST` or `stateOrProvinceName`        | X.500      | _(`DirectoryString`)_ | 2.5.4.8
+  `serialNumber`                          | X.500      | `PrintableString`     | 2.5.4.5
+  `C` or `country`                        | X.500      | `CountryString`       | 2.5.4.6
+  `street` or `streetAddress`             | X.500      | `DirectoryString`     | 2.5.4.9
+  `description` or `multiLineDescription` | X.500      | `DirectoryString`     | 2.5.4.13
+  `searchGuide`                           | X.500      | `Guide`               | 2.5.4.14
+  `businessCategory`                      | X.500      | `DirectoryString`     | 2.5.4.15
+  `postalAddress`                         | X.500      | `PostalAddress`       | 2.5.4.16
+  `postalCode`                            | X.500      | `DirectoryString`     | 2.5.4.17
+  `uidNumber`                             | RFC 2307   | `Integer`             | 1.3.6.1.1.1.1.0
+  `gidNumber`                             | RFC 2307   | `Integer`             | 1.3.6.1.1.1.1.1
+  `gecos`                                 | RFC 2307   | `IA5String`           | 1.3.6.1.1.1.1.2
+  `homeDirectory`                         | RFC 2307   | `IA5String`           | 1.3.6.1.1.1.1.3
+  `loginShell`                            | RFC 2307   | `IA5String`           | 1.3.6.1.1.1.1.4
+  `shadowLastChange`                      | RFC 2307   | `Integer`             | 1.3.6.1.1.1.1.5
+  `shadowMin`                             | RFC 2307   | `Integer`             | 1.3.6.1.1.1.1.6
+  `shadowMax`                             | RFC 2307   | `Integer`             | 1.3.6.1.1.1.1.7
+  `shadowWarning`                         | RFC 2307   | `Integer`             | 1.3.6.1.1.1.1.8
+  `shadowInactive`                        | RFC 2307   | `Integer`             | 1.3.6.1.1.1.1.9
+  `shadowExpire`                          | RFC 2307   | `Integer`             | 1.3.6.1.1.1.1.10
+  `shadowFlag`                            | RFC 2307   | `Integer`             | 1.3.6.1.1.1.1.11
+  `memberUid`                             | RFC 2307   | `IA5String`           | 1.3.6.1.1.1.1.12
+  `memberNisNetgroup`                     | RFC 2307   | `IA5String`           | 1.3.6.1.1.1.1.13
+  
+
+### Class overview
+
+#### X.500 Classes
+
+```mermaid
+classDiagram
+
+  class Top {
+    <<abstract>>
+  }
+
+  class Alias {
+    <<structural>>
+    DN aliasedObjectName$
+  }
+  Top <|-- Alias
+
+  class Country {
+    <<structural>>
+    CountryString C$
+    Guide searchGuide
+    DirectoryString description
+  }
+  Top <|-- Country
+
+  class Locality {
+    <<structural>>
+    DirectoryString street
+    DN seeAlso
+    Guide searchGuide
+    DirectoryString ST
+    DirectoryString L
+    DirectoryString description
+  }
+  Top <|-- Locality
+
+  Top <|-- Organization
+
+  Top <|-- OrganizationalUnit
+
+  Top <|-- Person
+
+  Person <|-- OrganizationalPerson
+
+  Top <|-- OrganizationalRole
+
+  Top <|-- GroupOfNames
+
+  Person <|-- ResidentialPerson
+
+  Top <|-- ApplicationProcess
+
+  Top <|-- ApplicationEntity
+
+  Top <|-- DSA
+
+  Top <|-- Device
+
+  class StrongAuthenticationUser {
+    <<Auxiliary>>
+    userCertificate$
+  }
+  Top <|-- StrongAuthenticationUser
+
+  Top <|-- CertificateAuthority
+
+  Top <|-- GroupOfUniqueName
+
+  Top <|-- CRLDistributionPoint
+
+  Top <|-- DMD
+
+  Top <|-- UserSecurityInformation
+
+  Top <|-- CertificateAuthorityV2
+
+```
+
+#### IAM classes
+
+```mermaid
+classDiagram
+
+  Object <|-- SystemObject
+  Object <|-- Container
+  Object <|-- SecurityPrincipal
+  Object <|-- ServiceEndpoint
+  Container <|-- Folder
+  Container <|-- Realm
+  Container <|-- Environment
+  Container <|-- Site
+  Container <|-- Zone
+  Container <|-- ServiceStack
+  Container <|-- Service
+  Container <|-- ServiceInstance
+  SecurityPrincipal <|-- Role
+  SecurityPrincipal <|-- ServiceAccount
+  SecurityPrincipal <|-- UserAccount
+  SecurityPrincipal <|-- RoleInstance
+  SecurityPrincipal <|-- Group
+
+  RoleInstance ..> Role : is of role
+  Group ..> SecurityPrincipal : has member
+
+  %% ServiceStack ..> Service : contains
+  %% Service ..> ServiceInstance : contains
+  %% ServiceInstance ..> ServiceEndpoint
+
+  %% Core object classes
+
+  class Object {
+    <<abstract>>
+    DirectoryString CN
+    DirectoryString description
+  }
+  Top <|-- Object
+
+  class SystemObject {
+    <<auxiliary>>
+    DirectoryString CN
+    DirectoryString description
+  }
+
+  %% Container
+
+  class Container {
+    <<abstract>>
+    DirectoryString CN
+    DirectoryString description
+  }
+
+  class Folder {
+    <<structural>>
+    DirectoryString CN$
+    DirectoryString description
+  }
+
+  %% Realm
+
+  class Realm {
+    <<auxiliary>>
+    DirectoryString CN
+    DirectoryString description
+    DirectoryString dNSDomainName
+    OctetString krb5RealmName
+  }
+
+  %% Security Principals
+
+    class SecurityPrincipal {
+    <<abstract>>
+    DirectoryString UID$
+    DirectoryString CN
+    DirectoryString description
+    iA5String krb5PrincipalName
+    Integer uidNumber
+    Integer gidNumber
+    iA5String homeDirectory
+    iA5String gecos
+    iA5String loginShell
+  }
+
+  class UserAccount {
+    DirectoryString UID$
+    DirectoryString CN
+    DirectoryString description
+    iA5String krb5PrincipalName
+    Integer uidNumber
+    Integer gidNumber
+    iA5String homeDirectory
+    iA5String gecos
+    iA5String loginShell
+  }
+
+  class Role {
+    DirectoryString UID$
+    DirectoryString CN
+    DirectoryString description
+    iA5String krb5PrincipalName
+    Integer uidNumber
+    Integer gidNumber
+    iA5String homeDirectory
+    iA5String gecos
+    iA5String loginShell
+  }
+
+  class Group {
+    DirectoryString UID$
+    DirectoryString CN
+    DirectoryString description
+    iA5String krb5PrincipalName
+    Integer uidNumber
+    Integer gidNumber
+    iA5String homeDirectory
+    iA5String gecos
+    iA5String loginShell
+    DistinguishedName~SecurityPrincipal~ member+
+  }
+
+  class ServiceAccount {
+    DirectoryString UID$
+    DirectoryString CN
+    DirectoryString description
+    iA5String krb5PrincipalName
+    Integer uidNumber
+    Integer gidNumber
+    iA5String homeDirectory
+    iA5String gecos
+    iA5String loginShell
+  }
+
+  class RoleInstance {
+    DirectoryString UID$
+    DirectoryString CN
+    DirectoryString description
+    iA5String krb5PrincipalName
+    Integer uidNumber
+    Integer gidNumber
+    iA5String homeDirectory
+    iA5String gecos
+    iA5String loginShell
+    DistinguishedName~Role~ role
+  }
+
+  %% Environments and Services
+
+    class Environment {
+    <<structural>>
+    DirectoryString ENV$
+    DirectoryString CN
+    DirectoryString description
+  }
+
+  class Service {
+    <<structural>>
+    DirectoryString CN$
+    DirectoryString description
+  }
+
+  class ServiceStack {
+    <<structural>>
+    DirectoryString CN$
+    DirectoryString description
+  }
+
+  class ServiceInstance {
+    DirectoryString svc$
+    DirectoryString CN
+    DirectoryString description
+    DirectoryString advertisedServiceName
+    int advertisedServicePort
+    DirectoryString advertisedServiceProtocol
+  }
+
+  class ServiceEndpoint {
+    DirectoryString node$
+    DirectoryString CN
+    DirectoryString description
+    DirectoryString dNSDomainName
+    DirectoryString advertisedServiceName
+    int advertisedServicePort
+    DirectoryString advertisedServiceProtocol
+
+  }
+
+
+```
+
+### Core object classes
+
+```mermaid
+classDiagram
+
+  class Object {
+    <<abstract>>
+    DirectoryString CN
+    DirectoryString description
+  }
+
+  class SystemObject {
+    <<auxiliary>>
+    DirectoryString CN
+    DirectoryString description
+  }
+
+  Top <|-- Object
+  Object <|-- SystemObject
+```
+
+`Object` is an abstract class which is the used as the ancestor of all key
+types of object within the directory. It allows, but does not require, a
+`CN` (or `commonName`) and a `description` to be set: this means that every
+object within the directoy _may_ have a `CN` and a `description`; many will
+omit either or both.
+
+`CN` is a convenient generic naming property, and can be used to form a
+`DN` (or `distinguishedName`). Typically, the `CN` corresponds to something's
+"display name".
+
+`SystemObject` is an auxiliary class applied to objects whose lifecycle is
+managed internally by the system rather than explicitly by an administrator,
+and so by implication a `SystemObject` cannot be renamed, moved, or deleted,
+although its contents can typically be manipulated as normal.
+
+### Containers and Folders
+
+```mermaid
+classDiagram
+
+  class Container {
+    <<abstract>>
+    DirectoryString CN
+    DirectoryString description
+  }
+
+  Top <|-- Object
+  Object <|-- Container
+
+  class Folder {
+    <<structural>>
+    DirectoryString CN$
+    DirectoryString description
+  }
+
+  class Realm {
+    ::
+    (described below)
+  }
+
+  class Environment {
+    ::
+    (described below)
+  }
+
+  class Site {
+    ::
+    (described below)
+  }
+
+  class Zone {
+    ::
+    (described below)
+  }
+
+  Container <|-- Folder
+  Container <|-- Realm
+  Container <|-- Environment
+  Container <|-- Site
+  Container <|-- Zone
+```
+
+A `Container` is a generic, but abstract, container of other objects.
+Subclasses of `Container` represent different kinds of container used within
+the directory:
+
+* `Folder`: a general-purose container, which must have a `CN`, and can generally be created anywhere within the directory where there's a need to group objects not met by other classes
+* `Realm` (described in detail below): the top-level container for all objects within a realm
+* `Environment` (described in detail below): an isolated security domain within a realm
+* `Site` and `Zone` (described in detail below): a way of grouping resources by physical location and logical network topology
+
+ They must have a Common
+Name (`CN`), and may have a `description`. `Container`s can generally be
+created anywhere within the directory where there're a requirement to group
+objects that doesn't fit the semantics of another class (e.g., `organizationalUnit`)
+
+
+### Realm
+
+```mermaid
+classDiagram
+
+  class Container {
+  }
+
+  Top <|-- Object
+  Object <|-- Container
+
+  class Realm {
+    <<auxiliary>>
+    DirectoryString CN
+    DirectoryString description
+    DirectoryString dNSDomainName
+    OctetString krb5RealmName
+  }
+
+  Container <|-- Realm
+```
+
+A `Realm` represents the top-level container for everything within a single management realm. It's an auxiliary class, and so is typically added to an `Organization` or `OrganizationalUnit` instance (although a realm could in principle be an instance of any structural object).
+
+ A `Realm` inherits from `Container` and may additionally have `dNSDomainName` (representing the primary DNS domain name for the realm), and `krb5RealmName` (typically an all-uppercase version of `dNSDomainName` but may not be in all cases); the latter two will always be present under normal circumstances for a properly-functioning realm.
+
+### Security Principals
+
+```mermaid
+classDiagram
+
+  class SecurityPrincipal {
+    <<abstract>>
+    DirectoryString UID$
+    DirectoryString CN
+    DirectoryString description
+    iA5String krb5PrincipalName
+    Integer uidNumber
+    Integer gidNumber
+    iA5String homeDirectory
+    iA5String gecos
+    iA5String loginShell
+  }
+
+  class UserAccount {
+    DirectoryString UID$
+    DirectoryString CN
+    DirectoryString description
+    iA5String krb5PrincipalName
+    Integer uidNumber
+    Integer gidNumber
+    iA5String homeDirectory
+    iA5String gecos
+    iA5String loginShell
+  }
+
+  class Role {
+    DirectoryString UID$
+    DirectoryString CN
+    DirectoryString description
+    iA5String krb5PrincipalName
+    Integer uidNumber
+    Integer gidNumber
+    iA5String homeDirectory
+    iA5String gecos
+    iA5String loginShell
+  }
+
+  class Group {
+    DirectoryString UID$
+    DirectoryString CN
+    DirectoryString description
+    iA5String krb5PrincipalName
+    Integer uidNumber
+    Integer gidNumber
+    iA5String homeDirectory
+    iA5String gecos
+    iA5String loginShell
+    DistinguishedName~SecurityPrincipal~ member+
+  }
+
+  class ServiceAccount {
+    DirectoryString UID$
+    DirectoryString CN
+    DirectoryString description
+    iA5String krb5PrincipalName
+    Integer uidNumber
+    Integer gidNumber
+    iA5String homeDirectory
+    iA5String gecos
+    iA5String loginShell
+  }
+
+  class RoleInstance {
+    DirectoryString UID$
+    DirectoryString CN
+    DirectoryString description
+    iA5String krb5PrincipalName
+    Integer uidNumber
+    Integer gidNumber
+    iA5String homeDirectory
+    iA5String gecos
+    iA5String loginShell
+    DistinguishedName~Role~ role
+  }
+
+  Top <|-- Object
+  Object <|-- SecurityPrincipal
+  SecurityPrincipal <|-- Role
+  SecurityPrincipal <|-- ServiceAccount
+  SecurityPrincipal <|-- UserAccount
+  SecurityPrincipal <|-- RoleInstance
+  SecurityPrincipal <|-- Group
+
+  RoleInstance ..> Role : is of role
+  Group ..> SecurityPrincipal : has member
+```
+
+A `SecurityPrincipal` represents any entity that has its own security identity and there are a number of subclasses for different kinds of principal:
+
+* `UserAccount`: an account issued to a person
+* `Role`: a defined role which confers access to resources
+* `RoleInstance`: an instance of a role conferred upon a particular user account (corresponding to Kerberos principals of the form _principal/instance@REALM_)
+* `ServiceAccount`: an account used by a network service in order to access other resources
+* `Group`: a group of accounts
+
+Not all properties apply usefully to all kinds of account, but an account must have a `UID` and may have a `CN`, `description`, `uidNumber`, `gidNumber`, `homeDirectory`, `loginShell`, `gecos`, and `krb5PrincipalName`
+
+`SecurityPrincipal`s are typically also instances of `krb5Principal` and `krb5KDCEntry`, and may also be members of other well-known classes such as `inetOrgPerson`, `posixAccount`, `posixGroup`, etc.
+
+
+### Environments and services
+
+```mermaid
+classDiagram
+  class Environment {
+    <<structural>>
+    DirectoryString ENV$
+    DirectoryString CN
+    DirectoryString description
+  }
+
+  class Service {
+    <<structural>>
+    DirectoryString CN$
+    DirectoryString description
+  }
+
+  class ServiceGroup {
+    <<structural>>
+    DirectoryString CN$
+    DirectoryString description
+  }
+
+  class ServiceInstance {
+    DirectoryString svc$
+    DirectoryString CN
+    DirectoryString description
+    DirectoryString advertisedServiceName
+    int advertisedServicePort
+    DirectoryString advertisedServiceProtocol
+  }
+
+  class ServiceNode {
+    DirectoryString node$
+    DirectoryString CN
+    DirectoryString description
+    DirectoryString dNSDomainName
+    DirectoryString advertisedServiceName
+    int advertisedServicePort
+    DirectoryString advertisedServiceProtocol
+
+  }
+
+  Environment ..> Service : contains
+  Environment ..> ServiceGroup : contains
+  ServiceGroup ..> Service : contains
+  Service ..> ServiceInstance : contains
+  ServiceInstance ..> ServiceNode : has
+```
+
+A `Realm` may contain any number of `Environment`s. Whilst objects can
+generally be created anywhere within the directory, `Environments` are
+a mechanism for partitioning a realm into co-existing sets of services,
+along with their own `SecurityPrincipals`, segregated from any equivalents
+which may exist in any other environments.
+
+When a `Realm` is initialised, a default environment called `Infrastructure`
+is created to hold the service definitions for those services which can be
+considered core infrastructure of the realm, such as the directory and the
+Kerberos KDC services, but additional `Environment`s can be created
+arbitrarily.
+
+Each `Environment` can contain
+`Service`s, and which are made up of one or more `ServiceInstance`s, which
+represents the availability of particular protocol. Each `ServiceInstance` is then
+in turn served by any number of `ServiceNode`s, which are reachable endpoints
+where that protocol is available to clients.
+
+`Service`s may be grouped together into `ServiceGroup`s for convenience, such as
+an "Identity Management" group.
+
+Although not shown on the diagram above, `Environment`s can contain other
+kinds of object besides `Service`s and `ServiceGroup`s: for example.
+
+### Example Realm Tree
+
+The diagram below shows the basic structure of a populated directory for a realm.
+
+```mermaid
+classDiagram
+
+  class Example {
+    <<System Realm>>
+    DN: O=Example Enterprises, C=CA
+    O: Example Enterprises
+    objectClass: top
+    objectClass: organization
+    objectClass: systemObject
+    objectClass: realm
+    objectClass: krb5Realm
+    dNSDomainName: example.ca
+    krb5RealmName: EXAMPLE.CA
+  }
+
+  class Users {
+    <<System Folder>>
+    DN: CN=Global Users, …
+    CN: Global Users
+    objectClass: top
+    objectClass: folder
+    objectClass: systemObject
+    description: Realm-wide global container for user accounts
+  }
+  Example -- Users
+
+  class Groups {
+    <<System Folder>>
+    DN: CN=Global Groups, …
+    CN: Global Groups
+    objectClass: top
+    objectClass: folder
+    objectClass: systemObject
+  }
+  Example -- Groups
+
+  class Roles {
+    <<System Folder>>
+    DN: CN=Roles, …
+    CN: Roles
+    objectClass: top
+    objectClass: folder
+    objectClass: systemObject
+    description: Realm-wide global container for roles
+  }
+  Example -- Roles
+
+  class Infrastructure {
+    <<System Environment>>
+    DN: ENV=Infrastructure, …
+    ENV: Infrastructure
+    objectClass: top
+    objectClass: environment
+    objectClass: systemObject
+    description: Built-in infrastructure services
+  }
+  Example -- Infrastructure
+
+  class ServiceAccounts {
+    <<System Folder>>
+    DN: CN=Service Accounts, …
+    CN: Service Accounts
+    objectClass: top
+    objectClass: folder
+    objectClass: systemObject
+  }
+  Infrastructure -- ServiceAccounts
+
+  class krbtgt {
+    <<System ServiceAccount>>
+    DN: UID=krbtgt, …
+    UID: krbtgt
+    objectClass: top
+    objectClass: securityPrincipal
+    objectClass: serviceAccount
+    objectClass: systemObject
+    krb5PrincipalName: krbtgt/EXAMPLE.CA@EXAMPLE.CA
+  }
+
+  ServiceAccounts -- krbtgt
+
+  class Contacts {
+    <<System Folder>>
+    DN: CN=Contacts, …
+    CN: Contacts
+    objectClass: top
+    objectClass: folder
+    objectClass: systemObject
+  }
+  Example -- Contacts
+
+
+  class User {
+    <<UserAccount>>
+    DN: CN=Otto Normalbenutzer, …
+    CN: Otto NormalBenutzer
+    UID: otto
+    objectClass: top
+    objectClass: account
+    objectClass: userAccount
+    objectClass: krb5Principal
+    objectClass: krb5KDCEntry
+    objectClass: posixAccount
+    objectClass: posixGroup
+    uidNumber: 5000
+    gidNumber: 5000
+    homeDirectory: /fs/u14/otto
+    loginShell: /bin/zsh
+    gecos: Otto Normalbenutzer
+    krb5PrincipalName: otto@EXAMPLE.CA
+    krb5KDCFlags: 126
+    krb5KeyVersionNumber: 0
+    krb5ExtendedAttributes:: …
+  }
+  Users -- User
+
+  class UserAdminRoleInstance {
+    <<RoleInstance>>
+    DN: CN=Kerberos Administrator, …
+    CN: Kerberos Administrator
+    UID: otto/admin
+    objectClass: top
+    objectClass: account
+    objectClass: roleInstance
+    objectClass: krb5Principal
+    objectClass: krb5KDCEntry
+    krb5PrincipalName: otto/admin@EXAMPLE.CA
+    krb5KDCFlags: 126
+    krb5KeyVersionNumber: 0
+    krb5ExtendedAttributes:: …
+    role: CN=Kerberos Administrator, CN=Roles, O=Example Enterprises, C=CA
+  }
+  User -- UserAdminRoleInstance
+
+```
+
 ## Replication
 
 TBC.
@@ -502,8 +1183,8 @@ flowchart
       hsm_b1[hsm-b1] --> pkcs_b1
     end
 
-    a1 -. signs .-> x1
-    b1 -. signs .-> x1
+%%    a1 -. signs .-> x1
+%%    b1 -. signs .-> x1
 
     subgraph x1 ["Intermediate CA X1"]
       direction LR
