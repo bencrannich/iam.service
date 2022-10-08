@@ -1,5 +1,22 @@
 # Identity and Access Management (IAM) service stack
 
+## Contents
+
+1. [Introduction](#introduction)
+2. [Design goals](#design-goals)
+3. [Certificate authorities and purposes](#certificate-authorities-and-purposes)
+4. [Object model](#object-model)
+5. [~~Replication~~ (TBC)](#replication)
+6. [~~Scaling~~ (TBC)](#performance-resources-and-scaling)
+7. [~~Integration~~ (TBC)](#integration)
+8. [Local testing & development](#local-testing--development)
+9. [Standards and references](#standards-and-references)
+10. [Appendices](#appendices)
+
+## Introduction
+
+### What is it?
+
 This stack contains:
 
 * `ds`: an LDAP directory service (OpenLDAP)
@@ -11,11 +28,38 @@ This stack contains:
  It is **NOT** remotely production-ready
 
 There's no kpasswdd because user accounts (and indeed ideally service accounts)
-should use PKINIT
+should use PKINIT.
 
-## Design principles
+In addition to the above, to support development and integration testing,
+additional services are defined to optionally bootstrap a complete public-key
+infrastructure (PKI), key/secrets management service, and a container
+configured as a typical Linux client.
+
+### What is it for?
+
+This stack provides the identity and access management services for my own
+personal wide-area network (WAN), and so supports a very small number of users
+across a much larger number of commodity devices, spread across multiple
+physical locations.
+
+It is not intended to be a _product_, least of all one anybody else uses,
+although the intent is that it is maintained and operated in line with best
+practices in order to make my life easier.
+
+### Quick start
+
+```
+$ make rebuild
+$ make client-shell
+```
+
+See *[Local testing & development](#local-testing--development)* for more information.
+
+## Design goals
 
 ### The Directory is the source of truth
+
+*See also: [Object model](#object-model)*
 
 The focal point of this stack is the directory service, `ds`. As is typical, the
 purpose of the directory service is to be the so-called "single source of
@@ -61,6 +105,8 @@ Smartcard) and entering the unlock PIN.
 
 ### Certificates as standard
 
+*See also: [Certificate Authorities and Purposes](#certificate-authorities-and-purposes)*
+
 Digital certificates are a copy of a portion of information from the
 directory, digitally signed for a fixed period (or until revoked) to
 allow the receiver to verify their validity. Typically, the information
@@ -100,87 +146,13 @@ and to lower-spec compute instances offered by major cloud providers.
 
 ### Standards-based and interoperable
 
+*See also: [Standards and references](#standards-and-references)*
+
 This stack is intended to be used by clients running a range of
 operating systems (particularly Linux, macOS, iOS, and Android),
 and afford integration with other services (such as NFS and a DHCP
-server), and do so with relatively light configuration and following standard patterns where possible.
-
-## Standards
-
-### ITU-T Recommendations
-
-Much of the stack is defined by initially the ITU-T X.500 family of
-recommendations, which were originally intended to define a complete, global,
-interconnected directory-based infrastructure. Whilst this did not ever
-reach fruition, the following recommendations form the basis of standards
-followed today:
-
-  Document | Title
- ----------|--------
-  X.509    | The Directory: Public-key and attribute certificate frameworks
-  X.520    | The Directory: Selected attribute types
-  X.521    | The Directory: Selected object classes
-  X.690    | ASN.1 encoding rules: Specification of Basic Encoding Rules (BER), Canonical Encoding Rules (CER) and Distinguished Encoding Rules (DER)
-
-### Lightweight Directory Access Protocol (LDAP)
-
-In practice, the primary reference material governing this stack are the IETF
-RFCs defining the Lightweight Directory Access Protocol (LDAP), which replaces
-the Directory Access Protocol defined by X.500:
-
-  Document  | Date      | Title
- -----------|-----------|--------
-  RFC 2589  | 1999-05   | Lightweight Directory Access Protocol (v3): Extensions for Dynamic Directory Services
-  RFC 4510  | 2006-06   | Lightweight Directory Access Protocol (LDAP): Technical Specification Road Map
-  RFC 4511  | 2006-06   | LDAP: The Protocol
-  RFC 4512  | 2006-06   | LDAP: Directory Information Models
-  RFC 4513  | 2006-06   | LDAP: Authentication Methods and Security Mechanisms
-  RFC 4514  | 2006-06   | LDAP: String Representation of Distinguished Names
-  RFC 4515  | 2006-06   | LDAP: String Representation of Search Filters
-  RFC 4516  | 2006-06   | LDAP: Uniform Resource Locator
-  RFC 4517  | 2006-06   | LDAP: Syntaxes and Matching Rules
-  RFC 4518  | 2006-06   | LDAP: Internationalized String Preparation
-  RFC 4519  | 2006-06   | LDAP: Schema for User Applications
-
-A number of historical RFCs are made reference to, which are listed here:
-
-  Document  | Date      | See also | Title
- -----------|-----------|----------|--------
-  RFC 1274  | 1991-11   | RFC 4524 | The COSINE and Internet X.500 Schema
-  RFC 2252  | 1997-12   | RFC 4510 | Lightweight Directory Access Protocol (v3): Attribute Syntax Definitions
-  RFC 2256  | 1997-12   | RFC 4510 | A Summary of the X.500(96) User Schema for use with LDAPv3
-  RFC 2587  | 1999-06   | RFC 4523 | Internet X.509 Public Key Infrastructure LDAPv2 Schema
-  RFC 2830  | 2000-05   | RFC 4513 | Lightweight Directory Access Protocol (v3): Extension for Transport Layer Security
-  RFC 3377  | 2002-09   | RFC 4510 | Lightweight Directory Access Protocol (v3): Technical Specification
-
-### Additional LDAP schema definitions and references
-
-  Document    | Date      | Title
- -------------|-----------|--------
-  RFC 2079    | 1997-01   | Definition of an X.500 Attribute Type and an Object Class to Hold Uniform Resource Identifiers (URIs)
-  RFC 2247    | 1998-01   | Using Domains in LDAP/X.500 Distinguished Names
-  RFC 2307    | 1998-03   | An Approach for Using LDAP as a Network Information Service
-  RFC 2377    | 1998-09   | Naming Plan for Internet Directory-Enabled Applications
-  RFC 2798    | 2000-04   | Definition of the inetOrgPerson LDAP Object Class
-  RFC 4523    | 2006-06   | LDAP: Schema Definitions for X.509 Certificates
-  RFC 4524    | 2006-06   | COSINE LDAP/X.500 Schema
-  hdb.schema  | 2015-09   | Heimdal: Definitions for a Kerberos V KDC schema
-
-### Internet X.509 Public Key Infrastructure and Transport Layer Security
-
-Current:
-
-  RFC         | Date      | Title
- -------------|-----------|--------
-  RFC 5280    | 2008-05   | Internet X.509 Public Key Infrastructure Certificate and Certificate Revocation List (CRL) Profile
-  RFC 6960    | 2013-06   | X.509 Internet Public Key Infrastructure Online Certificate Status Protocol - OCSP
-  RFC 8446    | 2018-08   | The Transport Layer Security (TLS) Protocol Version 1.3
-
-Historical:
-
-  RFC         | Date      | See also | Title
- -------------|-----------|----------|--------
-  RFC 3280    | 2002-04   | RFC 5280 | Internet X.509 Public Key Infrastructure Certificate and Certificate Revocation List (CRL) Profile
+server), and do so with relatively light configuration and following
+standard patterns where possible.
 
 ## Certificate authorities and purposes
 
@@ -1358,7 +1330,86 @@ logout
 $ 
 ```
 
-## To-do
+## Standards and references
+
+### ITU-T Recommendations
+
+Much of the stack is defined by initially the ITU-T X.500 family of
+recommendations, which were originally intended to define a complete, global,
+interconnected directory-based infrastructure. Whilst this did not ever
+reach fruition, the following recommendations form the basis of standards
+followed today:
+
+  Document | Title
+ ----------|--------
+  X.509    | The Directory: Public-key and attribute certificate frameworks
+  X.520    | The Directory: Selected attribute types
+  X.521    | The Directory: Selected object classes
+  X.690    | ASN.1 encoding rules: Specification of Basic Encoding Rules (BER), Canonical Encoding Rules (CER) and Distinguished Encoding Rules (DER)
+
+### Lightweight Directory Access Protocol (LDAP)
+
+In practice, the primary reference material governing this stack are the IETF
+RFCs defining the Lightweight Directory Access Protocol (LDAP), which replaces
+the Directory Access Protocol defined by X.500:
+
+  Document  | Date      | Title
+ -----------|-----------|--------
+  RFC 2589  | 1999-05   | Lightweight Directory Access Protocol (v3): Extensions for Dynamic Directory Services
+  RFC 4510  | 2006-06   | Lightweight Directory Access Protocol (LDAP): Technical Specification Road Map
+  RFC 4511  | 2006-06   | LDAP: The Protocol
+  RFC 4512  | 2006-06   | LDAP: Directory Information Models
+  RFC 4513  | 2006-06   | LDAP: Authentication Methods and Security Mechanisms
+  RFC 4514  | 2006-06   | LDAP: String Representation of Distinguished Names
+  RFC 4515  | 2006-06   | LDAP: String Representation of Search Filters
+  RFC 4516  | 2006-06   | LDAP: Uniform Resource Locator
+  RFC 4517  | 2006-06   | LDAP: Syntaxes and Matching Rules
+  RFC 4518  | 2006-06   | LDAP: Internationalized String Preparation
+  RFC 4519  | 2006-06   | LDAP: Schema for User Applications
+
+A number of historical RFCs are made reference to, which are listed here:
+
+  Document  | Date      | See also | Title
+ -----------|-----------|----------|--------
+  RFC 1274  | 1991-11   | RFC 4524 | The COSINE and Internet X.500 Schema
+  RFC 2252  | 1997-12   | RFC 4510 | Lightweight Directory Access Protocol (v3): Attribute Syntax Definitions
+  RFC 2256  | 1997-12   | RFC 4510 | A Summary of the X.500(96) User Schema for use with LDAPv3
+  RFC 2587  | 1999-06   | RFC 4523 | Internet X.509 Public Key Infrastructure LDAPv2 Schema
+  RFC 2830  | 2000-05   | RFC 4513 | Lightweight Directory Access Protocol (v3): Extension for Transport Layer Security
+  RFC 3377  | 2002-09   | RFC 4510 | Lightweight Directory Access Protocol (v3): Technical Specification
+
+### Additional LDAP schema definitions and references
+
+  Document    | Date      | Title
+ -------------|-----------|--------
+  RFC 2079    | 1997-01   | Definition of an X.500 Attribute Type and an Object Class to Hold Uniform Resource Identifiers (URIs)
+  RFC 2247    | 1998-01   | Using Domains in LDAP/X.500 Distinguished Names
+  RFC 2307    | 1998-03   | An Approach for Using LDAP as a Network Information Service
+  RFC 2377    | 1998-09   | Naming Plan for Internet Directory-Enabled Applications
+  RFC 2798    | 2000-04   | Definition of the inetOrgPerson LDAP Object Class
+  RFC 4523    | 2006-06   | LDAP: Schema Definitions for X.509 Certificates
+  RFC 4524    | 2006-06   | COSINE LDAP/X.500 Schema
+  hdb.schema  | 2015-09   | Heimdal: Definitions for a Kerberos V KDC schema
+
+### Internet X.509 Public Key Infrastructure and Transport Layer Security
+
+Current:
+
+  RFC         | Date      | Title
+ -------------|-----------|--------
+  RFC 5280    | 2008-05   | Internet X.509 Public Key Infrastructure Certificate and Certificate Revocation List (CRL) Profile
+  RFC 6960    | 2013-06   | X.509 Internet Public Key Infrastructure Online Certificate Status Protocol - OCSP
+  RFC 8446    | 2018-08   | The Transport Layer Security (TLS) Protocol Version 1.3
+
+Historical:
+
+  RFC         | Date      | See also | Title
+ -------------|-----------|----------|--------
+  RFC 3280    | 2002-04   | RFC 5280 | Internet X.509 Public Key Infrastructure Certificate and Certificate Revocation List (CRL) Profile
+
+## Appendices
+
+### To-do list
 
 1. ds: Run container as unprivileged user
 2. ds: Run container with read-only root
@@ -1391,7 +1442,7 @@ $
 29. ds, kdc: certificate revocations!
 30. ds, kdc, kadmin, client: minimal deployment with mini-ca & how to use externally-provided certs
 
-## Heimdal hdb-ldap options
+### Heimdal hdb-ldap options
 
 From [hdp-ldap.c](https://github.com/heimdal/heimdal/blob/8b0c7ec09a167e37fb6f7626cf0a633174e30184/lib/hdb/hdb-ldap.c#L1907):-
 
@@ -1404,7 +1455,7 @@ From [hdp-ldap.c](https://github.com/heimdal/heimdal/blob/8b0c7ec09a167e37fb6f76
 * `kdc`.`hdb-ldap-start-tls` (boolean)
 * `kdc`.`hdb-ldap-create-base` (string)
 
-## OpenLDAP debugging levels
+### OpenLDAP debugging levels
 
 | Level    | Keyword        | Description                                    |
 | -------- | -------------- | ---------------------------------------------- |
